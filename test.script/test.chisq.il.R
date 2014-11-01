@@ -74,9 +74,25 @@ books <- data.frame(
 (m2 <- merge(books, authors, by.x = "name", by.y = "surname"))
 
 
+## Meng random population
+e.ran.cold <- read.table("e://data//meng//il//E-Random-Cold.txt", header = T, row.names = 1);
+marker.names <- rownames(e.ran.cold);
+e.ran.cold <- t(e.ran.cold)
+e.ran.cold <- rbind(marker.names, e.ran.cold)
+## meng selected population
+e.sele.cold <- read.table("e://data/meng//il//Cold-ILs-Geno.txt", header = T, row.names = 1);
+e.sele.cold <- t(e.sele.cold);
 
+debug(refFreq)
 
+apply(e.ran.cold, 2, refFreq, "B", "H", "A")
 
+debug(chisqTestOnIL)
+chisqTestOnIL(e.ran.cold, 2, 6)
+chisqTestOnIL(e.sele.cold, 2, 6)
+x <- chisqTestOnIL(e.sele.cold, 2, 6, ref.matrix = e.ran.cold)
+chisqTestOnIL(e.sele.cold, 2, 6, inc.ht = F,  ref.matrix = e.ran.cold)
 
+undebug(chisqTestOnIL)
 
 
