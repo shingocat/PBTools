@@ -90,7 +90,7 @@ apply(e.ran.cold, 2, refFreq, "B", "H", "A")
 debug(chisqTestOnIL)
 chisqTestOnIL(e.ran.cold, 2, 6)
 chisqTestOnIL(e.sele.cold, 2, 6)
-x <- chisqTestOnIL(e.sele.cold, 2, 6, ref.matrix = e.ran.cold)
+chisqTestOnIL(e.sele.cold, 2, 6, ref.matrix = e.ran.cold)
 chisqTestOnIL(e.sele.cold, 2, 6, inc.ht = F,  ref.matrix = e.ran.cold)
 
 undebug(chisqTestOnIL)

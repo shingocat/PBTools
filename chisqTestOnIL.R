@@ -4,7 +4,7 @@
 # 
 #
 # [Arguments]
-#	marker.matrix: Header is marker names and each row is genotypic value of each row!.
+#	marker.matrix: Header is marker names and each row is genotypic value of each marker!.
 #	BCn: The generation of backcross;
 #	Fn:	The generation of selfing or intercross;
 #	dp.code: The marker code of donor parent;
