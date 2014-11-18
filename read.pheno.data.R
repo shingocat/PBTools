@@ -4,6 +4,8 @@
 # ARGUMENT:
 # file - the file of phenotypic data, should be of csv or txt format with header;
 # pop.type - a character string descrided population type, only accepted "SSSL", "PY" and "IL" value;
+# gen.num - the number of gene for pyramided line design, it must be specified when population type is pyramieded lines
+#			and only accepted 2, 3, and 4 genes by far.
 # resp.var - a vector of strings; variable names of the response variables; 
 # exptl.design - the experimental design, should be of value on RCB, AugRCB, AugLS, Alpha, RowCol, LatinAlpha, LatinRowCol;
 # geno - a string; variable name of the treatment/genotype variable;
@@ -23,6 +25,7 @@
 read.pheno.data <- function(
 		file,
 		pop.type,
+		gen.num,
 		exptl.design = c("RCB", "AugRCB", "AugLS", "Alpha", "RowCol", "LatinAlpha", "LatinRowCol"),	
 		resp.var,
 		geno,
@@ -39,6 +42,7 @@ read.pheno.data <- function(
 read.pheno.data.default <- function(
 		file,
 		pop.type,
+		gen.num,
 		exptl.design = c("RCB", "AugRCB", "AugLS", "Alpha", "RowCol", "LatinAlpha", "LatinRowCol"),	
 		resp.var,
 		geno,
@@ -76,6 +80,17 @@ read.pheno.data.default <- function(
 	{
 		stop("\tError: The argument of pop.type should be of value \"SSSL\",\"PL\",\"IL\".\n");
 	}
+	#-- checking the argument of gen.num when the pop.type is PL --#
+	if(identical(pop.type, "PL"))
+	{
+		if(missing(gen.num))
+			stop("\tError: The argument of gen.num could not be null when pop.type is \"PL\" and only accept one of integer 2, 3 and 4.\n");
+		if(!is.numeric(gen.num))
+			stop("\tError: The argument of gen.num only accepted one of integer 2, 3 and 4.\n");
+		if(length(gen.num) != 1)
+			stop("\tError: The argument of gen.num only accepted one of integer 2, 3 and 4.\n");
+	}
+	
 	if(missing(exptl.design))
 	{
 		stop("\tError: The argument of exptl.design could not be null!\n");
@@ -143,7 +158,7 @@ read.pheno.data.default <- function(
 		if(length(rep) != 1)
 			stop("\tError: The argument of rep should be of length of 1!\n");
 	}
-		
+	
 	# reading data from file
 	data <-  try(read.csv(file = file, header = T, na.strings=na.code), silent = TRUE);
 	if(identical(class(data), "try-error"))
@@ -163,6 +178,53 @@ read.pheno.data.default <- function(
 		geno <- as.character(geno);
 		data[, geno] <- factor(trimStrings(data[, geno]));
 		design.factor <- c(design.factor, geno);
+	}
+	# --- checking geno factor should have correct coded labels and levels --- #
+	if(identical(pop.type, "PL"))
+	{
+		genoLevels <- levels(data[,match(geno, names(data))]);
+		if(length(genoLevels) <= 1)
+		{
+			stop("\tError: The levels of geno argument cannot be less than two levels.\n");
+		}
+		
+		# -- levels of genes combinations should be depend on the parameters of input values.
+		if(all(genoLevels %in% levels(interaction(list(A = c("AA","Aa","aa"),B = c("BB","Bb","bb")), sep="", lex.order = T)))
+				|| all(genoLevels %in% levels(interaction(list(A = c("AA","Aa","aa"),B = c("BB","Bb","bb"), C=c("CC","Cc","cc")), sep="", lex.order = T)))
+				|| all(genoLevels %in% levels(interaction(list(A = c("AA","Aa","aa"),B = c("BB","Bb","bb"), C=c("CC","Cc","cc"), D = c("DD","Dd","dd")), sep="", lex.order = T))))
+		{
+			# do noting right now
+		} else
+		{
+			stop(
+					paste("\tError: The geno argument should be coded as", 
+							"aabb", "Aabb", "AAbb", "aaBb", "AaBb", "AABb", "aaBB", "AaBB", "AABB,", 
+							" if it is bigenes design,\n",
+							"\tor ",
+							"aabbcc", "aabbCc", "aabbCC", "aaBbcc", "aaBbCc", "aaBbCC", "aaBBcc", "aaBBCc",
+							"aaBBCC", "Aabbcc", "AabbCc", "AabbCC", "AaBbcc", "AaBbCc", "AaBbCC", "AaBBcc",
+							"AaBBCc", "AaBBCC", "AAbbcc" ,"AAbbCc", "AAbbCC", "AABbcc", "AABbCc", "AABbCC",
+							"AABBcc", "AABBCc", "AABBCC,",
+							" if it is trigenes desing, \n",
+							"\tor ",
+							"aabbccdd", "aabbccDd", "aabbccDD", "aabbCcdd", "aabbCcDd", "aabbCcDD",
+							"aabbCCdd", "aabbCCDd", "aabbCCDD", "aaBbccdd", "aaBbccDd", "aaBbccDD",
+							"aaBbCcdd", "aaBbCcDd", "aaBbCcDD", "aaBbCCdd", "aaBbCCDd", "aaBbCCDD",
+							"aaBBccdd", "aaBBccDd", "aaBBccDD", "aaBBCcdd", "aaBBCcDd", "aaBBCcDD",
+							"aaBBCCdd", "aaBBCCDd", "aaBBCCDD", "Aabbccdd", "AabbccDd", "AabbccDD",
+							"AabbCcdd", "AabbCcDd", "AabbCcDD", "AabbCCdd", "AabbCCDd", "AabbCCDD",
+							"AaBbccdd", "AaBbccDd", "AaBbccDD", "AaBbCcdd", "AaBbCcDd", "AaBbCcDD",
+							"AaBbCCdd", "AaBbCCDd", "AaBbCCDD", "AaBBccdd", "AaBBccDd", "AaBBccDD",
+							"AaBBCcdd", "AaBBCcDd", "AaBBCcDD", "AaBBCCdd", "AaBBCCDd", "AaBBCCDD",
+							"AAbbccdd", "AAbbccDd", "AAbbccDD", "AAbbCcdd", "AAbbCcDd", "AAbbCcDD",
+							"AAbbCCdd", "AAbbCCDd", "AAbbCCDD", "AABbccdd", "AABbccDd", "AABbccDD",
+							"AABbCcdd", "AABbCcDd", "AABbCcDD", "AABbCCdd", "AABbCCDd", "AABbCCDD",
+							"AABBccdd", "AABBccDd", "AABBccDD", "AABBCcdd", "AABBCcDd", "AABBCcDD",
+							"AABBCCdd", "AABBCCDd", "AABBCCDD,",
+							" if it is quadragenes design\n",
+							
+							sep = " ") );
+		}
 	}
 	if(!all(resp.var %in% col.names))
 		stop("\tError: The argument of resp.var does not match columns in the file!\n");
@@ -291,6 +353,8 @@ read.pheno.data.default <- function(
 	outcomes <- list();
 	outcomes$na.code <- na.code;
 	outcomes$pop.type <- pop.type;
+	if(identical(pop.type, "PL"))
+		outcomes$gen.num <- gen.num;
 	outcomes$resp.var <- resp.var;
 	outcomes$raw.data <- data;
 #	outcomes$design <- list();
