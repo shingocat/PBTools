@@ -1,8 +1,8 @@
 ###############################################################################
-# TODO: reading phenotypic data from file and formating data to a list for analyzing later;
+# TODO: reading phenotypic data from phenodata and formating data to a list for analyzing later;
 # 
 # ARGUMENT:
-# file - the file of phenotypic data, should be of csv or txt format with header;
+# phenodata - the phenodata of phenotypic data, should be of csv, txt format or data.frame format with header;
 # pop.type - a character string descrided population type, only accepted "SSSL", "PY" and "IL" value;
 # gen.num - the number of gene for pyramided line design, it must be specified when population type is pyramieded lines
 #			and only accepted 2, 3, and 4 genes by far.
@@ -18,12 +18,12 @@
 #
 # Author: mqin
 # Date: Oct 15, 2014
-# FileName: read.pheno.data.R
+# phenodataName: read.pheno.data.R
 ###############################################################################
 
 
 read.pheno.data <- function(
-		file,
+		phenodata,
 		pop.type,
 		gen.num,
 		exptl.design = c("RCB", "AugRCB", "AugLS", "Alpha", "RowCol", "LatinAlpha", "LatinRowCol"),	
@@ -40,7 +40,7 @@ read.pheno.data <- function(
 	UseMethod("read.pheno.data");
 }
 read.pheno.data.default <- function(
-		file,
+		phenodata,
 		pop.type,
 		gen.num,
 		exptl.design = c("RCB", "AugRCB", "AugLS", "Alpha", "RowCol", "LatinAlpha", "LatinRowCol"),	
@@ -54,18 +54,30 @@ read.pheno.data.default <- function(
 		na.code = NA
 )
 {
-	if(missing(file))
+	if(missing(phenodata))
 	{
-		stop("\tError: The argument of file could not be null!\n");
+		stop("\tError: The argument of phenodata could not be null!\n");
 	}
-	if(!is.character(file))
+	if(inherits(phenodata, "character"))
 	{
-		stop("\tError: The argument of file should be character!\n");
-	}
-	if(!file.exists(file))
+		if(!file.exists(phenodata))
+			stop("\tError: The phenodata file does not exist! Please checking again!\n");
+		isFile <- TRUE;
+	} else if(inherits(phenodata, "data.frame"))
 	{
-		stop("\tError: The file does not exist! Please checking again!\n");
+		isFile <- FALSE;
+	} else
+	{
+		stop("\tError: The argument of phenodata should be character of file path or data.frame format!\n");
 	}
+#	if(!is.character(phenodata))
+#	{
+#		stop("\tError: The argument of phenodata should be character!\n");
+#	}
+#	if(!file.exists(phenodata))
+#	{
+#		stop("\tError: The file does not exist! Please checking again!\n");
+#	}
 	if(missing(pop.type))
 	{
 		stop("\tError: The argument of pop.type could not be null!\n");
@@ -159,11 +171,17 @@ read.pheno.data.default <- function(
 			stop("\tError: The argument of rep should be of length of 1!\n");
 	}
 	
-	# reading data from file
-	data <-  try(read.csv(file = file, header = T, na.strings=na.code), silent = TRUE);
-	if(identical(class(data), "try-error"))
+	# reading data from file if the phenodata is a file
+	if(isFile)
 	{
-		stop("\tError: There are some problems on in the file!\n");
+		data <-  try(read.csv(file = phenodata, header = T, na.strings=na.code), silent = TRUE);
+		if(identical(class(data), "try-error"))
+		{
+			stop("\tError: There are some problems on in the phenodata!\n");
+		}
+	} else
+	{
+		data <- phenodata;
 	}
 	
 	# checking whether all design factor names exists 
@@ -172,14 +190,19 @@ read.pheno.data.default <- function(
 	design.factor <- c();
 	if(!(geno %in% col.names))
 	{
-		stop("\tError: The argument of geno does not match any column in the file!\n");
+		stop("\tError: The argument of geno does not match any column in the phenodata!\n");
 	} else
 	{
 		geno <- as.character(geno);
 		data[, geno] <- factor(trimStrings(data[, geno]));
 		design.factor <- c(design.factor, geno);
+		#--- checking the geno level should be more than two levels ---#
+		if(nlevels(data[, geno]) <= 1)
+		{
+			stop("\tThe genotypic variable should be more than two levels!;\n");
+		}
 	}
-	# --- checking geno factor should have correct coded labels and levels --- #
+	# --- checking geno factor should have correct coded labels and levels when population type is pyramided line--- #
 	if(identical(pop.type, "PL"))
 	{
 		genoLevels <- levels(data[,match(geno, names(data))]);
@@ -226,110 +249,182 @@ read.pheno.data.default <- function(
 							sep = " ") );
 		}
 	}
+	
 	if(!all(resp.var %in% col.names))
-		stop("\tError: The argument of resp.var does not match columns in the file!\n");
+		stop("\tError: The specified trait name(s) in resp.var does not match column in the phenodata!\n");
+	
 	if(exptl.design == "RCB" || exptl.design == "AugRCB")
 	{
 		if(!(block %in% col.names))
 		{
-			stop("\tError: The argument of block does not match any column in the file!\n");
+			stop("\tError: The argument of block does not match any column in the phenodata!\n");
 		} else
 		{
 			block <- as.character(block);
 			data[, block] <- factor(trimStrings(data[,block]));
 			design.factor <- c(design.factor, block);
+			#--- checking the block variable should be more than two levels! ---#
+			if(nlevels(data[, block]) <= 1)
+			{
+				stop("\tError: The block variable should be more than two levels!\n");
+			}
 		}
 	} else if(exptl.design == "AugLS")
 	{
 		if(!(row %in% col.names))
 		{
-			stop("\tError: The argument of row does not match any column in the file!\n");
+			stop("\tError: The argument of row does not match any column in the phenodata!\n");
 		} else
 		{
 			row <- as.character(row);
 			data[, row] <- factor(trimStrings(data[,row]));
 			design.factor <- c(design.factor, row);
+			#--- checking the row variable should be more than two levels!---#
+			if(nlevels(data[,row]) <= 1)
+			{
+				stop("\tError: The row variable should not be less than two levels!\n");
+			}
 		}
 		if(!(column %in% col.names))
 		{
-			stop("\tError: The argument of column does not match any column in the file!\n");
+			stop("\tError: The argument of column does not match any column in the phenodata!\n");
 		} else
 		{
 			column <- as.character(column);
 			data[, column] <- factor(trimStrings(data[,column]));
 			design.factor <- c(design.factor, column);
+			#---checking the column variable should be more than two levels!---#
+			if(nlevels(data[,column]) <= 1)
+			{
+				stop("\tError: The column vairable should not be less than two levels!\n");
+			}
 		}
 	} else if(exptl.design == "Alpha" || exptl.design == "LatinAlpha")
 	{
 		if(!(block %in% col.names))
 		{
-			stop("\tError: The argument of block does not match any column in the file!\n");
+			stop("\tError: The argument of block does not match any column in the phenodata!\n");
 		} else
 		{
 			block <- as.character(block);
 			data[ , block] <- factor(trimStrings(data[ , block]));
 			design.factor <- c(design.factor, block);
+			#--- checking block variable should not be less than two levels!---#
+			if(nlevels(data[ , block]) <= 1)
+				stop("\tError: The block variable should not be less than two levels!\n");
 		}
 		if(!(rep %in% col.names))
 		{
-			stop("\tError: The argument of rep does not match any column in the file!\n");
+			stop("\tError: The argument of rep does not match any column in the phenodata!\n");
 		} else
 		{
 			rep <- as.character(rep);
 			data[ , rep] <- factor(trimStrings(data[ , rep]));
 			design.factor <- c(design.factor, rep);
+			#--- checking rep variable should not be less than two levels!---#
+			if(nlevels(data[ , rep]) <= 1)
+			{
+				stop("\tError: The rep variable should not be less than two levels!\n");
+			}
 		}
 	} else if(exptl.design == "RowCol" || exptl.design == "LatinRowCol")
 	{
 		if(!(row %in% col.names))
 		{
-			stop("\tError: The argument of row does not match any column in the file!\n");
+			stop("\tError: The argument of row does not match any column in the phenodata!\n");
 		} else
 		{
 			row <- as.charachter(row);
 			data[,row] <- factor(trimStrings(data[ , row]));
 			design.factor <- c(design.factor, row);
+			#--- checking row variable should not be less than two levels!---#
+			if(nlevels(data[,row]) <= 1)
+			{
+				stop("\tError: The row variable should not be less than two levels!\n");
+			}
 		}
 		if(!(column %in% col.names))
 		{
-			stop("\tError: The argument of column does not match any column in the file!\n");
+			stop("\tError: The argument of column does not match any column in the phenodata!\n");
 		} else
 		{
 			column <- as.character(column);
 			data[ , column] <- factor(trimStrings(data[ , column]));
 			design.factor <- c(design.factor, column);
+			#--- checking column variable should not be less than two levels!---#
+			if(nlevels(data[, column]) <= 1)
+			{
+				stop("\tError: The column variable should not be less than two levels!\n");
+			}
 		}
 		if(!(rep %in% col.names))
 		{
-			stop("\tError: The argument of rep does not match any column in the file!\n");
+			stop("\tError: The argument of rep does not match any column in the phenodata!\n");
 		} else
 		{
 			rep <- as.character(rep);
 			data[ , rep] <- factor(trimStrings(data[ , rep]));
 			design.factor <- c(design.factor, rep);
+			#--- checking rep variable should not be less than two levels!---#
+			if(nlevels(data[,rep]) <= 1)
+			{
+				stop("\tError: The rep variable should not be less than two levels!\n");
+			}
 		}
 	}
 	
+	# --- if design is Latinized Row-Column, check if the data follow case1 or case3 labeling --- #
+	if(exptl.design == "LatinRowCol")
+	{
+		lengthPerCross <- tapply(temp.data[,respvar[i]], temp.data[ ,c(row, column)], length);
+		if(all(lengthPerCross <= 1, na.rm = TRUE))
+		{
+			if(nlevels(temp.data[ , row]) > nlevels(temp.data[ , column]))
+			{
+				longerRow <- TRUE;
+			} else
+			{
+				longerRow <- FALSE;
+			}
+		} else
+		{
+			stop("The levels of the row/column variable should be continuous across replicates.");
+		}
+	}
+	
+	#--- modify on 2014-11-20 ---#
+	#--- if user does not specify env argument all phenotypic data treating as on the same env---#
 	isEnvNull = FALSE;
 	
 	if(is.null(env))
 	{
 		env = "EnvLevel";
-		data = cbind(data, EnvLevel = 1);
+		env.name = "Env1"
+		data = cbind(data, EnvLevel = env.name);
 		data[[env]] <- factor(data[[env]]);
 		isEnvNull = TRUE;
-		design.factor <- c(design.factor, env);
 	} else
 	{
 		if(length(env) != 1)
 			stop("\tError: The argument of env should of length of 1!\n");
 		if(!(env %in% col.names))
-			stop("\tError: The argument of env does not match any column in the file!\n");
+			stop("\tError: The argument of env does not match any column in the phenodata!\n");
 		isEnvNULL = FALSE;
 		env <- as.character(env);
 		data[ , env] <- factor(trimStrings(data[ , env]));
-		design.factor <- c(design.factor, env);
 	}
+	design.factor <- c(design.factor, env);
+	
+#	if(!is.null(env))
+#	{
+#		if(length(env) != 1)
+#			stop("\tError: The argument of env should be of length of 1!\n");
+#		if(!(env %in% col.names))
+#			stop("\tError: The argument of env does not match any column in the phenodata!\n");
+#		env <- as.character(env);
+#		data[ , env] <- factor(trimStrings(data[ , env]));
+#		design.factor <- c(design.factor, env);
+#	}
 	
 	## checking all the design factor not include any missing value
 	for( i in 1:length(design.factor))
@@ -340,7 +435,7 @@ read.pheno.data.default <- function(
 		}
 	}
 	
-	## format the na.code of response variable to R default code "NA"
+	#--- format the na.code of response variable to R default code "NA"---#
 	if(!(identical(na.code, NA) || identical(na.code, "NA")))
 	{
 		for(i in 1:length(resp.var))
@@ -349,7 +444,7 @@ read.pheno.data.default <- function(
 		}
 	}
 	
-	## building and reformating to a list structer 
+	#--- building and reformating to a list structer ---#
 	outcomes <- list();
 	outcomes$na.code <- na.code;
 	outcomes$pop.type <- pop.type;
@@ -374,7 +469,8 @@ read.pheno.data.default <- function(
 	## each trait build one list
 	outcomes$traits <- list();
 	for(i in 1:length(resp.var))
-	{
+	{	
+		temp.data <- data[ , c(design.factor, resp.var[i])];
 		outcomes$traits[[i]] <- list();
 		outcomes$traits[[i]]$name <- resp.var[i];
 		outcomes$traits[[i]]$sites <- list();
@@ -382,53 +478,64 @@ read.pheno.data.default <- function(
 		{	
 			outcomes$single.site <- TRUE;
 			outcomes$traits[[i]]$sites[[1]] <- list();
-			outcomes$traits[[i]]$sites[[1]]$name <- levels(data[[env]]);
-			outcomes$traits[[i]]$sites[[1]]$obsread <- nrow(data);
-			outcomes$traits[[i]]$sites[[1]]$obsused <- nrow(subset(data, subset= (is.na(data[ , resp.var[i]]) == FALSE)));
+			outcomes$traits[[i]]$sites[[1]]$name <- env.name;
+			outcomes$traits[[i]]$sites[[1]]$obsread <- nrow(temp.data);
+			outcomes$traits[[i]]$sites[[1]]$obsused <- nrow(subset(temp.data, subset= (is.na(temp.data[ , resp.var[i]]) == FALSE)));
 			outcomes$traits[[i]]$sites[[1]]$missing.rate <- 1 - outcomes$traits[[i]]$sites[[1]]$obsused / outcomes$traits[[i]]$sites[[1]]$obsread;
-			outcomes$traits[[i]]$sites[[1]]$missing.rate.by.geno <- aggregate(data[[resp.var[i]]], by = list(data[[geno]]), FUN = function(x){sum(is.na(x)) / length(x)});
-			outcomes$traits[[i]]$sites[[1]]$data <- data;
+			missing.rate.by.geno <- aggregate(temp.data[[resp.var[i]]], by = list(temp.data[[geno]]), FUN = function(x){sum(is.na(x)) / length(x)});
+			names(missing.rate.by.geno) <- c(geno, "RATE");
+			outcomes$traits[[i]]$sites[[1]]$missing.rate.by.geno <- missing.rate.by.geno;
+			outcomes$traits[[i]]$sites[[1]]$data <- temp.data;
 			outcomes$traits[[i]]$sites[[1]]$design <- list();
 			outcomes$traits[[i]]$sites[[1]]$design$exptl.design <- exptl.design;
 			outcomes$traits[[i]]$sites[[1]]$design$geno <- geno;
-			outcomes$traits[[i]]$sites[[1]]$design$geno.levels <- levels(data[ , geno]);
+			outcomes$traits[[i]]$sites[[1]]$design$geno.levels <- levels(temp.data[ , geno]);
 			outcomes$traits[[i]]$sites[[1]]$design$block <- block;
-			outcomes$traits[[i]]$sites[[1]]$design$block.levels <- levels(data[ , block]);
+			outcomes$traits[[i]]$sites[[1]]$design$block.levels <- levels(temp.data[ , block]);
 			outcomes$traits[[i]]$sites[[1]]$design$row <- row;
-			outcomes$traits[[i]]$sites[[1]]$design$row.levels <- levels(data[ , row]);
+			outcomes$traits[[i]]$sites[[1]]$design$row.levels <- levels(temp.data[ , row]);
 			outcomes$traits[[i]]$sites[[1]]$design$column <- column;
-			outcomes$traits[[i]]$sites[[1]]$design$column.levels <- levels(data[ , column]);
+			outcomes$traits[[i]]$sites[[1]]$design$column.levels <- levels(temp.data[ , column]);
+			if(exptl.design == "LatinRowCol")
+				outcomes$traits[[i]]$sites[[1]]$longerRow <- longerRow;
 			outcomes$traits[[i]]$sites[[1]]$design$rep <- rep;
+			outcomes$traits[[i]]$sites[[1]]$design$rep.levels <- levels(temp.data[ , rep]);
 			outcomes$traits[[i]]$sites[[1]]$design$env <- env;
-			outcomes$traits[[i]]$sites[[1]]$design$env.levels <- levels(data[ , env]);
+			outcomes$traits[[i]]$sites[[1]]$design$env.levels <- levels(temp.data[ , env]);
 		}else
 		{
 			outcomes$single.site <- FALSE;
-			env.levels <- levels(data[[env]]);
+			env.levels <- levels(temp.data[[env]]);
 			for(j in 1:length(env.levels))
 			{
 				# --- create temp.data with one environment level only --- #
-				temp.data <- subset(data, subset = (data[[env]] == env.levels[j]));
+				env.data <- subset(temp.data, subset = (temp.data[[env]] == env.levels[j]));
 				outcomes$traits[[i]]$sites[[j]] <- list();
 				outcomes$traits[[i]]$sites[[j]]$name <- env.levels[j];
-				outcomes$traits[[i]]$sites[[j]]$obsread <- nrow(temp.data);
-				outcomes$traits[[i]]$sites[[j]]$obsused <- nrow(subset(temp.data, subset= (is.na(temp.data[ , resp.var[i]]) == FALSE)));
+				outcomes$traits[[i]]$sites[[j]]$obsread <- nrow(env.data);
+				outcomes$traits[[i]]$sites[[j]]$obsused <- nrow(subset(env.data, subset= (is.na(env.data[ , resp.var[i]]) == FALSE)));
 				outcomes$traits[[i]]$sites[[j]]$missing.rate <- 1 - outcomes$traits[[i]]$sites[[j]]$obsused / outcomes$traits[[i]]$sites[[j]]$obsread;
-				outcomes$traits[[i]]$sites[[j]]$missing.rate.by.geno <- aggregate(temp.data[[resp.var[i]]], by = list(temp.data[[geno]]), FUN = function(x){sum(is.na(x)) / length(x)});
-				outcomes$traits[[i]]$sites[[j]]$data <- temp.data;
+				#outcomes$traits[[i]]$sites[[j]]$missing.rate.by.geno <- aggregate(temp.data[[resp.var[i]]], by = list(temp.data[[geno]]), FUN = function(x){sum(is.na(x)) / length(x)});
+				missing.rate.by.geno <- aggregate(env.data[[resp.var[i]]], by = list(env.data[[geno]]), FUN = function(x){sum(is.na(x)) / length(x)});
+				names(missing.rate.by.geno) <- c(geno, "RATE");
+				outcomes$traits[[i]]$sites[[j]]$missing.rate.by.geno <- missing.rate.by.geno;
+				outcomes$traits[[i]]$sites[[j]]$data <-env.data;
 				outcomes$traits[[i]]$sites[[j]]$design <- list();
 				outcomes$traits[[i]]$sites[[j]]$design$exptl.design <- exptl.design;
 				outcomes$traits[[i]]$sites[[j]]$design$geno <- geno;
-				outcomes$traits[[i]]$sites[[j]]$design$geno.levels <- levels(temp.data[ , geno]);
+				outcomes$traits[[i]]$sites[[j]]$design$geno.levels <- levels(env.data[ , geno]);
 				outcomes$traits[[i]]$sites[[j]]$design$block <- block;
-				outcomes$traits[[i]]$sites[[j]]$design$block.levels <- levels(temp.data[ , block]);
+				outcomes$traits[[i]]$sites[[j]]$design$block.levels <- levels(env.data[ , block]);
 				outcomes$traits[[i]]$sites[[j]]$design$row <- row;
-				outcomes$traits[[i]]$sites[[j]]$design$row.levels <- levels(temp.data[ , row]);
+				outcomes$traits[[i]]$sites[[j]]$design$row.levels <- levels(env.data[ , row]);
 				outcomes$traits[[i]]$sites[[j]]$design$column <- column;
-				outcomes$traits[[i]]$sites[[j]]$design$column.levels <- levels(temp.data[ , column]);
+				outcomes$traits[[i]]$sites[[j]]$design$column.levels <- levels(env.data[ , column]);
+				if(exptl.design == "LatinRowCol")
+					outcomes$traits[[i]]$sites[[j]]$longerRow <- longerRow;
 				outcomes$traits[[i]]$sites[[j]]$design$rep <- rep;
+				outcomes$traits[[i]]$sites[[j]]$design$rep.levels <- levels(env.data[ , rep]);
 				outcomes$traits[[i]]$sites[[j]]$design$env <- env;
-				outcomes$traits[[i]]$sites[[j]]$design$env.levels <- levels(temp.data[ , env]);
+				outcomes$traits[[i]]$sites[[j]]$design$env.levels <- levels(env.data[ , env]);
 			}
 		} ## end of statement if(isEnvNull)
 	} ## end of statement of for(i in 1:length(resp.var))
@@ -455,7 +562,7 @@ print.PhenotypicData <- function(data, level = 1)
 	if(!any(level %in% c(1,2)))
 		stop("\tError: The argument of level only accepted the integer 1 or 2. \n");
 	cat("Phenotypic data details:\n");
-	cat("\tThe population type is : ", if(data$pop.type == "IL") "Introgression Lines" else if (data$pop.type == "PY") "Pyramided Lines" else "Single Segment Substitution Lines", ".\n");
+	cat("\tThe population type is : ", if(data$pop.type == "IL") "Introgression Lines" else if (data$pop.type == "PL") "Pyramided Lines" else "Single Segment Substitution Lines", ".\n");
 	cat("\tThe number of response variable is:", length(data$resp.var), ".\n");
 	cat("\tIs single site experiment :", if(data$single.site) "Yes" else "NO", ".\n");
 	cat(rep("-.-", 30));
