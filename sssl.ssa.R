@@ -345,7 +345,7 @@ sssl.ssa.test.default <- function(
 				# --- display SED table --- #
 				minSed <- formatC(as.numeric(format(min(sed), scientific=FALSE)), format="f");
 				meanSed <- formatC(as.numeric(format(mean(sed), scientific=FALSE)), format="f");
-				maxSed <- format(as.numeric(format(max(sed), scientific=FALSE)), format="f");
+				maxSed <- formatC(as.numeric(format(max(sed), scientific=FALSE)), format="f");
 				sedCol <- rbind(minSed, meanSed, maxSed);
 				rowNames <- rbind("Minimu ", "Average ", "Maximum ");
 				sedTable <- as.table(cbind(rowNames, sedCol));

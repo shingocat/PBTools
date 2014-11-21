@@ -4,7 +4,7 @@
 # ARGUMENT:
 # phenodata - the phenodata of phenotypic data, should be of csv, txt format or data.frame format with header;
 # pop.type - a character string descrided population type, only accepted "SSSL", "PY" and "IL" value;
-# gen.num - the number of gene for pyramided line design, it must be specified when population type is pyramieded lines
+# gene.num - the number of gene for pyramided line design, it must be specified when population type is pyramieded lines
 #			and only accepted 2, 3, and 4 genes by far.
 # resp.var - a vector of strings; variable names of the response variables; 
 # exptl.design - the experimental design, should be of value on RCB, AugRCB, AugLS, Alpha, RowCol, LatinAlpha, LatinRowCol;
@@ -25,7 +25,7 @@
 read.pheno.data <- function(
 		phenodata,
 		pop.type,
-		gen.num,
+		gene.num,
 		exptl.design = c("RCB", "AugRCB", "AugLS", "Alpha", "RowCol", "LatinAlpha", "LatinRowCol"),	
 		resp.var,
 		geno,
@@ -42,7 +42,7 @@ read.pheno.data <- function(
 read.pheno.data.default <- function(
 		phenodata,
 		pop.type,
-		gen.num,
+		gene.num,
 		exptl.design = c("RCB", "AugRCB", "AugLS", "Alpha", "RowCol", "LatinAlpha", "LatinRowCol"),	
 		resp.var,
 		geno,
@@ -95,11 +95,11 @@ read.pheno.data.default <- function(
 	#-- checking the argument of gen.num when the pop.type is PL --#
 	if(identical(pop.type, "PL"))
 	{
-		if(missing(gen.num))
+		if(missing(gene.num))
 			stop("\tError: The argument of gen.num could not be null when pop.type is \"PL\" and only accept one of integer 2, 3 and 4.\n");
-		if(!is.numeric(gen.num))
+		if(!is.numeric(gene.num))
 			stop("\tError: The argument of gen.num only accepted one of integer 2, 3 and 4.\n");
-		if(length(gen.num) != 1)
+		if(length(gene.num) != 1)
 			stop("\tError: The argument of gen.num only accepted one of integer 2, 3 and 4.\n");
 	}
 	
@@ -449,7 +449,7 @@ read.pheno.data.default <- function(
 	outcomes$na.code <- na.code;
 	outcomes$pop.type <- pop.type;
 	if(identical(pop.type, "PL"))
-		outcomes$gen.num <- gen.num;
+		outcomes$gene.num <- gene.num;
 	outcomes$resp.var <- resp.var;
 	outcomes$raw.data <- data;
 #	outcomes$design <- list();
