@@ -6,7 +6,7 @@
 #		
 #
 # ARGUMENT: 
-#	data - The object of class "PhenotypicData"
+#	phenodata - The object of class "PhenotypicData"
 #	missing.rate - missing rate of the whole phenotypic data;
 #	check.label - checking wheather the genotypic labels are legal or not for 
 #					pyramided line only, otherwise it will be discarded.
@@ -20,7 +20,7 @@
 
 
 restrict.pheno.data <- function(
-		data,
+		phenodata,
 		missing.rate = 0.2
 		#use.grand.mean = TRUE
 		#check.label = TRUE
@@ -28,69 +28,70 @@ restrict.pheno.data <- function(
 	UseMethod("restrict.pheno.data");
 
 restrict.pheno.data.PhenotypicData <- function(
-		data,
+		phenodata,
 		missing.rate = 0.2
 		#use.grand.mean = TRUE
 		#check.label = TRUE
 )
 {
-	if(!inherits(data, "PhenotypicData"))
-		stop("The argument of data must be of class PhenotypicData");
+	if(!inherits(phenodata, "PhenotypicData"))
+		stop("The argument of phenodata must be of class PhenotypicData");
 	if(!is.numeric(missing.rate))
 		stop("\tError: The argument of missing.rate should of value between 0 and 1!");
 	if(missing.rate > 1 || missing.rate < 0)
 		stop("\tError: The argument of missing.rate should of value between 0 and 1!");
-	for(i in 1:length(data$traits))
+	for(i in 1:length(phenodata$traits))
 	{
-		for(j in 1:length(data$traits[[i]]$sites))
+		for(j in 1:length(phenodata$traits[[i]]$envs))
 		{
-			data$traits[[i]]$sites[[j]]$restricted <- list();
+			phenodata$traits[[i]]$envs[[j]]$restricted <- list();
 			isRestricted <- FALSE;
-			if(data$traits[[i]]$sites[[j]]$missing.rate > missing.rate)
+			if(phenodata$traits[[i]]$envs[[j]]$missing.rate > missing.rate)
 				isRestricted <- TRUE;
-			data$traits[[i]]$sites[[j]]$restricted$isTRUE <- isRestricted;
-			data$traits[[i]]$sites[[j]]$restricted$missing.rate <- missing.rate;
+			phenodata$traits[[i]]$envs[[j]]$restricted$isTRUE <- isRestricted;
+			phenodata$traits[[i]]$envs[[j]]$restricted$missing.rate.cond <- missing.rate;
 			if(isRestricted)
 			{
-				data$traits[[i]]$sites[[j]]$restricted$manyNAWarning <- "Many observations are missing!";
+				phenodata$traits[[i]]$envs[[j]]$restricted$messages <- "Many observations are missing!";
 			}else
 			{
-				data$traits[[i]]$sites[[j]]$restricted$manyNAWarning <- NA;
+				phenodata$traits[[i]]$envs[[j]]$restricted$messages <- NA;
 			}
-			missing.rate.by.geno <- data$traits[[i]]$sites[[j]]$missing.rate.by.geno;
-			old.data <- data$traits[[i]]$sites[[j]]$data;
-			new.data <- old.data;
-			trait.name <- data$traits[[i]]$name;
-			geno <- data$traits[[i]]$sites[[j]]$design$geno;
+			#--- checking whether missing rate by geno is meet---#
+			missing.rate.by.geno <- phenodata$traits[[i]]$envs[[j]]$missing.rate.by.geno;
+			old.phenodata <- phenodata$traits[[i]]$envs[[j]]$data;
+			new.phenodata <- old.phenodata;
+			trait.name <- phenodata$traits[[i]]$name;
+			geno <- phenodata$traits[[i]]$envs[[j]]$design$geno;
 			if(any(missing.rate.by.geno[,"RATE"] == 1))
 			{
-				for(k in which(missing.rate.by.geno[, "RATE"] ==1))
+				for(k in which(missing.rate.by.geno[, "RATE"] == 1))
 				{
 					geno.level.name <- missing.rate.by.geno[k,1];
 					warning(paste("\tWARNING: The genotypic level ", geno.level.name, 
 									" would be deleted on trait ", trait.name, "!\n",
 									"\tBecause there are no observed values on this levels!", sep =""));
-					new.data <- new.data[new.data[[geno]] != geno.level.name ,];
+					new.phenodata <- new.phenodata[new.phenodata[[geno]] != geno.level.name ,];
 				}
-				new.data[ , geno] <- as.factor(as.character(new.data[ , geno]));
+				new.phenodata[ , geno] <- as.factor(as.character(new.phenodata[ , geno]));
 			}
-			data$traits[[i]]$sites[[j]]$data <- new.data;
-			data$traits[[i]]$sites[[j]]$old.data <- old.data;
+			phenodata$traits[[i]]$envs[[j]]$data <- new.phenodata;
+			phenodata$traits[[i]]$envs[[j]]$old.data <- old.phenodata;
 			#--- recomputed the observation read, observation used, missing.rate and missing.rate.by.geno after using grand mean insteated of missing value ---#
-			obsread <- nrow(new.data);
-			obsused <- nrow(subset(new.data, subset=(is.na(new.data[,trait.name]) == FALSE)));
-			missing.rate <- (obsread - obsused) / obsread;
-			data$traits[[i]]$sites[[j]]$obsread <- obsread;
-			data$traits[[i]]$sites[[j]]$obsused <- obsused;
-			data$traits[[i]]$sites[[j]]$missing.rate <- missing.rate;
-			missing.rate.by.geno <- aggregate(new.data[[trait.name]], by = list(new.data[[geno]]), FUN = function(x){sum(is.na(x)) / length(x)});
+			obsread <- nrow(new.phenodata);
+			obsused <- nrow(subset(new.phenodata, subset=(is.na(new.phenodata[,trait.name]) == FALSE)));
+			missing.rate.used <- (obsread - obsused) / obsread;
+			phenodata$traits[[i]]$envs[[j]]$obsread <- obsread;
+			phenodata$traits[[i]]$envs[[j]]$obsused <- obsused;
+			phenodata$traits[[i]]$envs[[j]]$missing.rate <- missing.rate.used;
+			missing.rate.by.geno <- aggregate(new.phenodata[[trait.name]], by = list(new.phenodata[[geno]]), FUN = function(x){sum(is.na(x)) / length(x)});
 			names(missing.rate.by.geno) <- c(geno, "RATE");
-			data$traits[[i]]$sites[[j]]$missing.rate.by.geno <- missing.rate.by.geno;
+			phenodata$traits[[i]]$envs[[j]]$missing.rate.by.geno <- missing.rate.by.geno;
 			#--- checking whether it is full level or not when the population is pyramided line---#
-			if(identical(data$pop.type, "PL"))
+			if(identical(phenodata$pop.type, "PL"))
 			{	
-				new.levels <- levels(as.factor(as.character(new.data[[geno]])));
-				gene.num <- data$gene.num;
+				new.levels <- levels(as.factor(as.character(new.phenodata[[geno]])));
+				gene.num <- phenodata$gene.num;
 				isFullLevel <- TRUE;
 				if(gene.num == 2)
 				{
@@ -105,38 +106,38 @@ restrict.pheno.data.PhenotypicData <- function(
 					if(!all(levels(interaction(list(A = c("AA","Aa","aa"),B = c("BB","Bb","bb"), C=c("CC","Cc","cc"), D = c("DD","Dd","dd")), sep="", lex.order = T)) %in% new.levels))
 						isFullLevel <- FALSE;		
 				}
-				data$traits[[i]]$sites[[j]]$FullLevel <- isFullLevel;
+				phenodata$traits[[i]]$envs[[j]]$FullLevel <- isFullLevel;
 			}
 #			if(use.grand.mean)
 #			{
-#				missing.rate.by.geno <- data$traits[[i]]$sites[[j]]$missing.rate.by.geno;
+#				missing.rate.by.geno <- phenodata$traits[[i]]$envs[[j]]$missing.rate.by.geno;
 #				if(any(missing.rate.by.geno[,"RATE"] == 1))
 #				{
-#					old.data <- data$traits[[i]]$sites[[j]]$data;
-#					new.data <- old.data;
-#					trait.name <- data$traits[[i]]$name;
-#					grand.mean <- mean(old.data[,trait.name], na.rm=TRUE);
-#					geno <- data$traits[[i]]$sites[[j]]$design$geno;
+#					old.phenodata <- phenodata$traits[[i]]$envs[[j]]$data;
+#					new.phenodata <- old.phenodata;
+#					trait.name <- phenodata$traits[[i]]$name;
+#					grand.mean <- mean(old.phenodata[,trait.name], na.rm=TRUE);
+#					geno <- phenodata$traits[[i]]$envs[[j]]$design$geno;
 #					for(k in which(missing.rate.by.geno[,"RATE"] == 1))
 #					{
-#						new.data[new.data[,geno] == missing.rate.by.geno[k,1], trait.name] <- grand.mean;
+#						new.phenodata[new.phenodata[,geno] == missing.rate.by.geno[k,1], trait.name] <- grand.mean;
 #					}
-#					data$traits[[i]]$sites[[j]]$data <- new.data;
-#					data$traits[[i]]$sites[[j]]$old.data <- old.data;
+#					phenodata$traits[[i]]$envs[[j]]$data <- new.phenodata;
+#					phenodata$traits[[i]]$envs[[j]]$old.data <- old.phenodata;
 #					#--- recompute the observation readed, observation used, missing.rate and missing.rate.by.geno after using grand mean insteated of missing value ---#
-#					obsread <- nrow(new.data);
-#					obsused <- nrow(subset(new.data, subset=(is.na(new.data[,trait.name]) == FALSE)));
+#					obsread <- nrow(new.phenodata);
+#					obsused <- nrow(subset(new.phenodata, subset=(is.na(new.phenodata[,trait.name]) == FALSE)));
 #					missing.rate <- (obsread - obsused) / obsread;
-#					data$traits[[i]]$sites[[j]]$obsread <- obsread;
-#					data$traits[[i]]$sites[[j]]$obsused <- obsused;
-#					data$traits[[i]]$sites[[j]]$missing.rate <- missing.rate;
-#					missing.rate.by.geno <- aggregate(new.data[[trait.name]], by = list(new.data[[geno]]), FUN = function(x){sum(is.na(x)) / length(x)});
+#					phenodata$traits[[i]]$envs[[j]]$obsread <- obsread;
+#					phenodata$traits[[i]]$envs[[j]]$obsused <- obsused;
+#					phenodata$traits[[i]]$envs[[j]]$missing.rate <- missing.rate;
+#					missing.rate.by.geno <- aggregate(new.phenodata[[trait.name]], by = list(new.phenodata[[geno]]), FUN = function(x){sum(is.na(x)) / length(x)});
 #					names(missing.rate.by.geno) <- c("GENO", "RATE");
-#					data$traits[[i]]$sites[[j]]$missing.rate.by.geno <- missing.rate.by.geno;
+#					phenodata$traits[[i]]$envs[[j]]$missing.rate.by.geno <- missing.rate.by.geno;
 #				}
 #			}
 		}
 	}
-	data$doRestricted <- TRUE;
-	return(data);
+	phenodata$isRestricted <- TRUE;
+	return(phenodata);
 }

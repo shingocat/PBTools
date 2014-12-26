@@ -21,16 +21,6 @@ restrict.geno.data <- function(
 		donor.minicount = 5
 )
 {
-	UseMethod("restrict.geno.data");
-}
-restrict.geno.data.GenotypicData <- function(
-		geno.data,
-		missing.rate = 0.80,
-		cor.rate = 0.90,
-		mono.reduced = TRUE,
-		donor.minicount = 5
-)
-{
 	if(is.null(geno.data$processed))
 	{
 		stop("\tError: The geno.data argument is not the instance of class GenotypicData!\n");
@@ -63,10 +53,23 @@ restrict.geno.data.GenotypicData <- function(
 	{
 		stop("\tError: The donor.minicount argument must be larger than zero!\n");
 	}
-	geno.data$restricted$missing.rate = missing.rate;
-	geno.data$restricted$cor.rate = cor.rate;
-	geno.data$restricted$mono.reduced = TRUE;
-	geno.data$restricted$donor.minicount = donor.minicount;
+	UseMethod("restrict.geno.data");
+}
+restrict.geno.data.GenotypicData <- function(
+		geno.data,
+		missing.rate = 0.80,
+		cor.rate = 0.90,
+		mono.reduced = TRUE,
+		donor.minicount = 5
+)
+{
+	
+	geno.data$restricted <- list();
+	
+	geno.data$restricted$missing.rate <- missing.rate;
+	geno.data$restricted$cor.rate <- cor.rate;
+	geno.data$restricted$mono.reduced <- mono.reduced;
+	geno.data$restricted$donor.minicount <- donor.minicount;
 	
 	processed.data <- as.data.frame(geno.data$processed$data);
 	# restrict missing rate large than 0.80
@@ -161,8 +164,10 @@ restrict.geno.data.GenotypicData <- function(
 		processed.data <- processed.data[ , - marker.match.cor.index];
 		geno.data$restricted$cor.marker <- marker.names[dis];
 	}
+	#--- adding imputation after restricted data ---#
+	processed.data <- imputation.GenotypicData(processed.data);
 	geno.data$restricted$data <- processed.data;
-	
+	geno.data$isRestricted <- TRUE;
 	return(geno.data);
 }
 restrict.geno.data.default <- function(
@@ -174,4 +179,33 @@ restrict.geno.data.default <- function(
 )
 {
 	stop("\tError: Only accepted the read.geno.data return object!\n");
+}
+
+imputation.GenotypicData <- function(data, method = c("MajorGene"))
+{
+	method <- match.arg(method);
+	if(missing(data))
+		stop("\tError: The argument of data could not be null!\n");
+	outcomes <- c();
+	if(method == "MajorGene")
+	{
+		outcomes <- apply(data, 2, replace.by.major.gene);
+	}
+	return(outcomes);
+}
+
+replace.by.major.gene <- function(x)
+{
+	n <- length(x);
+	x <- factor(x);
+	y <- table(x, useNA = "always");
+	prob <- y / n;
+	major.gene <- names(which(max(prob) == prob));
+	#--- if there are more than one genotype fitting for our standar---#
+	#--- use the first one at now, but it is not good way ---#
+	#--- modified this later if I have time---#
+	if(length(major.gene) > 1)
+		major.gene <- major.gene[1]
+	x[is.na(x)] <- major.gene;
+	return(x);
 }

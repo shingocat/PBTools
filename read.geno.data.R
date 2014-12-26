@@ -117,7 +117,7 @@ read.geno.data.character <- function(
 {
 	if(!file.exists(source))
 		stop("\tError: The file does not exist! Please checking again!\n");
-
+	
 #	if(!is.logical(doRestrict))
 #	{
 #		stop("\tError: The doRestrict argument should be of logical type! Default value is TRUE.\n");
@@ -165,14 +165,19 @@ innerFunc.read.geno <- function(
 		} else
 		{
 			stop(paste("\tError: There are illegal code in the marker : ", names(checking.result[!checking.result]), " !\n", sep = " " ));
-	
+			
 		}
 	}
 	# built a list for storing all value of original
 	result <- list();
+	result$isRestricted <- FALSE;
 	result$BCn <- BCn;
 	result$Fn <- Fn;
 	result$geno.name <- geno.name;
+	result$geno.levels <- levels(data.gen);
+	result$geno.number <- length(data.gen);
+	result$marker.names <- marker.names;
+	result$marker.number <- length(marker.names);
 	result$original <- list();
 	result$original$data <- data;
 	result$original$dp.code <- dp.code;
@@ -231,7 +236,54 @@ innerFunc.read.geno <- function(
 
 print.GenotypicData <- function(
 		data
+
 )
 {
-	cat("Since modeified the class structure, needed to reimplemented\n");
+	cat(rep("=",50), sep = "");
+	cat("\n");
+	cat("Genotypic Data of Population on BCn = ", data$BCn, " and Fn = ", data$Fn, ".\n",sep = "");
+	cat("The expected genetic freq. of each marker:", data$exp.genoFreq, ".\n");
+	cat("Original Code:\n");
+	cat("Donor code: ", data$original$dp.code, "; Heterozygous code: ", data$original$ht.code, 
+			"; Recurrent Code: ", data$original$rp.code, "; Missing code: ", data$original$na.code, ".\n", sep = "");
+	cat("Processing Code:\n");
+	cat("Donor code: ", data$processed$dp.code, "; Heterozygous code: ", data$processed$ht.code, 
+			"; Recurrent Code: ", data$processed$rp.code, "; Missing code: ", data$processed$na.code, ".\n", sep = "");
+	cat(rep("=",50), sep = "");
+	cat("\n")
+	if(data$isRestricted)
+	{
+		#--- After restrited genotypic data, alll information are retrieved from this---#
+		cat("Restricted Genotypicd Data!\n");
+		cat("Restricted Conditions:\n");
+		cat("Missing Rate:", data$restricted$missing.rate, "; Correlation Rate:", data$restricted$cor.rate, 
+				"; Deleted Monomorphysm:", data$restricted$mono.reduced, "; Donor Minimum Count:", data$restricted$donor.minicount, ".\n", sep = "");
+		cat("Markers' Missing Rate is Large Than Specified Value:\n");
+		cat("Marker Number:", length(data$restricted$missing.rate.marker), ".\n", sep = "");
+		cat("Marker Name:", data$restricted$missing.rate.marker, fill = 80);
+		cat("Marker's is Monomorphysm:\n");
+		cat("Marker Number:", length(data$restricted$mono.reduced.marker), ".\n", sep = "");
+		cat("Marker Name:", data$restricted$mono.reduced.marker, fill = 80);
+		cat("Marker's Donor Type is Smaller Than Specified value:\n");
+		cat("Marker Number:", length(data$restricted$donor.minicount.marker), ".\n", sep = "");
+		cat("Marker Name:", data$restricted$donor.minicount.marker, fill = 80);
+		cat("Markers Correlation Rate is Large Than Specified value:\n");
+		cat("Marker Number:", length(data$restricted$cor.marker), ".\n", sep = "");
+		cat("Marker Name:", data$restricted$cor.marker, fill = 80);
+		cat(rep("-", 50), sep = "");	
+	} else
+	{
+		cat("Marker Number:", data$marker.number, ".\n", sep = "");
+		cat("Marker Name:", data$marker.names, fill = 80);
+		cat("\n");
+		cat("Population Size:", data$geno.number, ".\n", sep = "");
+		cat("Line Name:", data$geno.levels, fill = 80);
+		cat(rep("-", 50), sep = "");
+		cat("\n");
+		cat("Marker Summary:\n");
+		print(as.data.frame(data$processed$marker.summary), fill = 80);
+		cat(rep("-", 50), sep = "");
+	}
+	cat("\n");
+	cat("\n");
 }

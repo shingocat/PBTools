@@ -241,7 +241,7 @@ contrastAnalysisOnIL.ssa.default <- function(
 							
 							model <- ssaOutput$output[[i]]$site[[j]]$model;
 							trmtLevels <- levels(model@frame[,2]);
-							if(length(contrastLevels) != length(trmtLevels)) # -- This conditions stop excution
+							if(length(contrastLevels) != length(trmtLevels)) 
 							{
 								checkOutcomes <- c(checkOutcomes,F);
 								errorMessages <- c(errorMessages, paste("\tError, The levels of specified genoContrast is not same as genotype levels on ", 

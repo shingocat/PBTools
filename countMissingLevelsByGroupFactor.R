@@ -52,7 +52,35 @@ countMissingLevelsByGroupFactor <- function(respvar, groupfactor, data)
 	{
 		temp[[groupfactor[i]]] <- levels(data[[groupfactor[i]]]);
 	}
-	inter.levels <- levels(interaction(temp, sep =""));
+	#--- modify this line because it would show warning message In ans * length(l) + if1 : ---#
+    #--- longer object length is not a multiple of shorter object length ---#
+	#--- replace by a inner function ---#
+	# inter.levels <- levels(interaction(temp, sep =""));
+	int <- function(temp)
+	{
+		int.temp <- list()
+		if(length(temp) >= 1)
+			int.temp[[1]] <- factor(temp[[1]]);
+		if(length(temp) == 1)
+		{
+			return(int.temp);
+		} else
+		{
+			for(i in 2:length(temp))
+			{
+				x <- NULL;
+				for(j in 1:length(temp[[i]]))
+				{
+					x <- c(x, paste(int.temp[[i - 1]], temp[[i]][j], sep=""));
+				}
+				int.temp[[i]] <- x;
+			}
+			int.temp[[length(int.temp)]];
+			return(int.temp[[length(int.temp)]]);
+		}
+	}
+	inter.levels <- int(temp);
+	
 	data.levels <- levels(as.factor(do.call(paste0, data[match(groupfactor,names(data))])));
 	if(!all(inter.levels %in% data.levels))
 	{

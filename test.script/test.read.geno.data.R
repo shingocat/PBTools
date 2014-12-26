@@ -20,7 +20,7 @@ out <- apply(data.change[,-1], 2, function(x) all(x %in% marker.code))
 names(out[!out])
 
 debug(read.geno.data)
-geno.data.testing <- try(read.geno.data(file="e://sampledata//geno.data.30.il.csv", dp.code = 3, rp.code = 1, ht.code = 2, na.code = NA))
+geno.data.testing <- try(read.geno.data("e://data//sampledata//geno.data.30.il.csv", dp.code = 3, rp.code = 1, ht.code = 2, na.code = NA))
 geno.data.testing
 undebug(read.geno.data)
 
