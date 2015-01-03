@@ -147,18 +147,19 @@ innerFunc.read.geno <- function(
 )
 {
 	data <- source;
+	data <- apply(data, 2, trimStrings);
 	# checking whether there are illegal marker code in the file, only accept four type of marker code
 	data.gen <- data[,1];
 	geno.name <- colnames(data)[1];
 	data.without.gen <- data[,-1];
-	marker.names <- names(data.without.gen);
+	marker.names <- colnames(data.without.gen);
 	marker.code <- c(dp.code, rp.code, ht.code, na.code);
 	checking.result <- apply(data.without.gen,2, function(x) all(x %in% marker.code));
 	if(!all(checking.result))
 	{	
 		if(replace.illegal.code)
 		{
-			data.without.gen[!checking.result] <- apply(data.without.gen[!checking.result], 2, function(x){
+			data.without.gen[,!checking.result] <- apply(data.without.gen[,!checking.result], 2, function(x){
 						x[!(x %in% marker.code)] <- na.code; 
 						x;
 					} );
@@ -198,6 +199,7 @@ innerFunc.read.geno <- function(
 	processed.geno.data <- as.data.frame(processed.geno.data);
 	processed.data <- cbind(data.gen, processed.geno.data);
 	colnames(processed.data) <- c(geno.name, marker.names);
+	processed.data <- apply(processed.data,2,trimStrings);
 	result$processed$data <- processed.data;
 	
 	# compute each marker levels

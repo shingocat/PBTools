@@ -98,7 +98,9 @@ restrict.geno.data.GenotypicData <- function(
 	}
 	# restric correlation rate, method by Dr.Wang, modify by me
 	marker.names <- colnames(processed.data)[-1];
-	test <- cor(processed.data[,-1], use="pairwise.complete.obs");
+	processed.data[ , -1] <- apply(processed.data[ , -1], 2, as.character);
+	processed.data[ , -1] <- apply(processed.data[ ,-1], 2, as.numeric);
+	test <- cor(processed.data[,-1],, use="pairwise.complete.obs");
 	diag(test) = 0;
 	iden = apply(test, 1, function(x) which(abs(x) > cor.rate)); # considering negative correlation
 	
@@ -165,7 +167,7 @@ restrict.geno.data.GenotypicData <- function(
 		geno.data$restricted$cor.marker <- marker.names[dis];
 	}
 	#--- adding imputation after restricted data ---#
-	processed.data <- imputation.GenotypicData(processed.data);
+	processed.data[,-1] <- imputation.GenotypicData(processed.data[,-1]);
 	geno.data$restricted$data <- processed.data;
 	geno.data$isRestricted <- TRUE;
 	return(geno.data);

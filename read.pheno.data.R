@@ -858,11 +858,11 @@ innerFunc.read.pheno.data <- function(
 					outcomes$traits[[i]]$envs[[j]]$design$env.levels <- levels(env.data[ , env]);
 				} else
 				{
-					outcomes$traits[[i]]$envs[[1]]$design <- list();
-					outcomes$traits[[i]]$envs[[1]]$design$geno <- geno;
-					outcomes$traits[[i]]$envs[[1]]$design$geno.levels <- levels(temp.data[ , geno]);
-					outcomes$traits[[i]]$envs[[1]]$design$env <- env;
-					outcomes$traits[[i]]$envs[[1]]$design$env.levels <- levels(temp.data[ , env]);
+					outcomes$traits[[i]]$envs[[j]]$design <- list();
+					outcomes$traits[[i]]$envs[[j]]$design$geno <- geno;
+					outcomes$traits[[i]]$envs[[j]]$design$geno.levels <- levels(temp.data[ , geno]);
+					outcomes$traits[[i]]$envs[[j]]$design$env <- env;
+					outcomes$traits[[i]]$envs[[j]]$design$env.levels <- levels(temp.data[ , env]);
 				}
 			}
 		} ## end of statement if(isSingleEnv)
