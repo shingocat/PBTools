@@ -23,14 +23,15 @@ doSMA <- function(
 		#	geno,
 		#	env,
 		resp.var,
+		include.env = TRUE,
 		is.EnvFixed = TRUE,
 		include.ht = FALSE,
-		test = c("F", "Chisq"),
+		#	test = c("F", "Chisq"),
 		digits = 4,
 		...
 )
 {
-	if(missing(PhenotypicData))
+	if(missing(phenotypicData))
 		stop("\tError: The phenotypicData argument could not be null!\n");
 	if(missing(genotypicData))
 		stop("\tError: The genotypicData argument could not be null!\n");
@@ -42,9 +43,9 @@ doSMA <- function(
 #			stop("\tError: The is.EnvFixed argument could not be null when it specified env argument!\n");
 #	}
 	if(missing(resp.var))
-		warings("\tWarnings: It could compute all respone variables of phenotypicData");
-	if(missing(test))
-		test = match.arg(test);
+		warning("\tWarnings: It will compute all respone variables of phenotypicData");
+#	if(missing(test))
+#		test = match.arg(test);
 	if(missing(digits))
 		digits = 4;
 	
@@ -58,14 +59,15 @@ doSMA.PhenotypicData <- function(
 #		geno,
 #		env,
 		resp.var,
+		include.env = TRUE,
 		is.EnvFixed = TRUE,
 		include.ht = FALSE,
-		test = c("F", "Chisq"),
+#		test = c("F", "Chisq"),
 		digits = 4,
 		...
 )
 {
-	#--- checking resp.var whether exists in the phenotypi data ---#
+	#--- checking resp.var whether exists in the phenotypic data, ortherwise using all traits in the phenotypicData ---#
 	if(!missing(resp.var))
 	{
 		trait.names <- phenotypicData$trait.names;
@@ -82,19 +84,300 @@ doSMA.PhenotypicData <- function(
 		}
 		if(length(temp.resp.var) == 0)
 			stop("\tError: All the specified resp.var are not exists in the phenotypicdata!\n");
+		resp.var <- temp.resp.var;
+	} else
+	{
+		resp.var <- phenotypicData$trait.names;
 	}
+	
 	if(phenotypicData$isMean)
 	{
 		if(!phenotypicData$isRestricted)
 		{
 			warnings("\tWarning: It will be used default argument to restrict phenodtypic data!\n");
-			phenotypicData <- restict.pheno.data(phenotypicData);
+			phenotypicData <- restrict.pheno.data(phenotypicData);
 		}
 		if(!genotypicData$isRestricted)
 		{
 			warnings("\tWarning: It will be used default argument to restrict genotypic data!\n");
 			genotypicData <- restrict.geno.data(genotypicData);
 		}
+		
+		#---getting all the requried informations---#
+		genotypicData.restricted <- genotypicData$restricted$data;
+		marker.number <- ncol(genotypicData.restricted) - 1;
+		marker.names <- colnames(genotypicData.restricted)[-1];
+		#---suppress warn message---#
+		old.options <- options();
+		options(warn = -1);
+		library("lsmeans");
+		
+		#--- reformat all genotypic data using dp.code instead of ht.code basing on include.ht ----#
+		#--- Because it will recode to default coding sytem, it could be define such code directly!---#
+		dp.code <- 2;
+		rp.code <- 0;
+		ht.code <- 1;
+		na.code <- NA;
+		if(include.ht)
+		{
+			genotypicData.restricted[,-1][genotypicData[,-1] == ht.code] <- dp.code;
+		}
+		genotypicData.restricted <- apply(genotypicData.restricted, 2, factor);
+		#--- checking whether is single environment---#
+		if(include.env && phenotypicData$isSingleEnv)
+		{	
+			include.env <- FALSE;
+			warning("\tWarnings: The phenotypic data is single environmental data and The is.EnvFixed paramter will be omitted!\n");
+		}
+		
+		for(i in 1:length(resp.var))
+		{
+			#--- checking whether the resp.var name is the trait name of phenotypicData---#
+			for(j in 1:length(phenotypicData$traits))
+			{
+				if(identical(resp.var[i], phenotypicData$traits[[j]]$name))
+				{
+					trait.name <- resp.var[i];
+					#--- checking the analysis structure of phenotypicData--#
+					if(is.null(phenotypicData$traits[[j]]$analysis))
+						phenotypicData$traits[[j]]$analysis <- list();
+					if(is.null(phenotypicData$traits[[j]]$analysis$sma))
+					{
+						phenotypicData$traits[[j]]$analysis$sma <- list();
+					} else
+					{
+						phenotypicData$traits[[j]]$analysis$sma <- NULL;
+						phenotypicData$traits[[j]]$analysis$sma <- list();
+					}
+					phenotypicData$traits[[j]]$analysis$sma$include.env <- include.env;
+					phenotypicData$traits[[j]]$analysis$sma$is.EnvFixed <- is.EnvFixed;
+					phenotypicData$traits[[j]]$analysis$sma$include.ht <- include.ht;
+					phenotypicData$traits[[j]]$analysis$sma$marker.number <- marker.number;
+					
+					means.out <- c();
+					var.table <- c();
+					p.table <- c();
+					
+					#---according to whether including env to determinate how to analysis single marker ---#
+					if(include.env)
+					{
+						#--- combined all environmental data into one data frame---#
+						temp.phenotypicData <- c();
+						env <- c();
+						for(k in 1:length(phenotypicData$traits[[j]]$envs))
+						{
+							temp.phenotypicData <- rbind(temp.phenotypicData, phenotypicData$traits[[j]]$envs[[k]]$data);
+							if(length(env) == 0)
+								env <- phenotypicData$traits[[j]]$envs[[k]]$design$env;
+						}
+						#--- merge phenotypicData and genotoypicData into one data frame ---#
+						geno.name.phenotypicData <- phenotypicData$traits[[j]]$envs[[1]]$design$geno;
+						geno.name.genotypicData <- genotypicData$geno.name;
+						data <- merge(temp.phenotypicData, genotypicData.restricted, by.x = geno.name.phenotypicData, by.y = geno.name.genotypicData);
+						data[,trait.name] <- as.numeric(as.character(data[,trait.name]));
+						
+						library("lme4");
+						
+						for(k in 1:marker.number)
+						{
+							marker.name <- marker.names[k];
+							myformula <- c();
+							
+							if(is.EnvFixed)
+							{
+								myformula <- paste(trait.name, " ~ 1 + ", marker.name, " + ", env, " + ", marker.name, " : ", env, sep = "");
+								model <- try(lm(formula(myformula), data = data), silent = TRUE);
+								if(!is.null(model) && class(model) == "try-error")
+								{
+									warning(paste("\tWarning: There are error occured on this marker, i.e. ", marker.name, ".\n", sep = ""));
+									next;
+								}
+								adjust.means <- lsmeans(model, specs = marker.name, by = env, weights = "cells");
+								adjust.means <- summary(adjust.means)[ , c(1:3)];
+								env.levels <- levels(adjust.means[,env]);
+								temp.means <- c();
+								for(k in 1:length(env.levels))
+								{	
+									env.name <- env.levels[k];
+									env.means <- adjust.means[adjust.means[ , env] == env.name, ];
+									rp.means <- if(rp.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == rp.code,3], digits) else NA;
+									ht.means <- if(ht.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == ht.code,3], digits) else NA;
+									dp.means <- if(dp.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == dp.code,3], digits) else NA;					
+									temp <- c(marker.name, env.name, rp.means, ht.means, dp.means);
+									temp.means <- rbind(temp.means, temp);
+								}
+								
+								#--- a formatted variance table ---#	
+								model.aov <- anova(model);
+								model.aov.rownames <- rownames(model.aov[1]);
+								marker.sq <- if(marker.name %in% model.aov.rownames) signif(model.aov[model.aov.rownames == marker.name, ]$"Sum Sq", digits) else NA;
+								marker.p <-  if(marker.name %in% model.aov.rownames) signif(model.aov[model.aov.rownames == marker.name, ]$"Pr(>F)", digits) else NA;
+								env.sq <- if(env %in% model.aov.rownames) signif(model.aov[model.aov.rownames == env, ]$"Sum Sq", digits) else NA;
+								env.p <-  if(env %in% model.aov.rownames) signif(model.aov[model.aov.rownames == env, ]$"Pr(>F)", digits) else NA;
+								marker.env.sq <- if(paste(marker.name, ":", env, sep="") %in% model.aov.rownames) signif(model.aov[model.aov.rownames == paste(marker.name, ":", env, sep=""), ]$"Sum Sq", digits) else NA;
+								marker.env.p <- if(paste(marker.name, ":", env, sep="") %in% model.aov.rownames) signif(model.aov[model.aov.rownames == paste(marker.name, ":", env, sep=""), ]$"Pr(>F)", digits) else NA;
+								residuals.sq <- if("Residuals" %in% model.aov.rownames) signif(model.aov[model.aov.rownames == "Residuals", ]$"Sum Sq", digits) else NA;
+								residuals.p <-  if("Residuals" %in% model.aov.rownames) signif(model.aov[model.aov.rownames == "Residuals", ]$"Pr(>F)", digits) else NA; 
+								
+								temp.var.table <- rbind(marker.name, paste(marker.sq, " (", marker.p, ")", sep = ""), paste(env.sq, " (", env.p, ")", sep = ""), paste(marker.env.sq, " (", marker.env.p, ")", sep = ""), residuals.sq);
+								temp.p.table <- c(marker.name, marker.p, marker.env.p);
+							} else
+							{
+								myformula <- paste(trait.name, " ~ 1 + ", marker.name, " + ", "(1|", env, ") + (1|", marker.name, " : ", env, ") ", sep = "");
+								model <- try(lmer(formula(myformula), data = data), silent = TRUE);
+								if(!is.null(model) && class(model) == "try-error")
+								{
+									warning(paste("\tWarning: There are error occured on this marker, i.e. ", marker.name, ".\n", sep = ""));
+									next;
+								}
+								#--- when env is random, contrust a means variance table ---#
+								#--- marker effect---#
+								intercept <- fixef(model)[[1]];
+								marker.effect <- as.data.frame(fixef(model)[-1]);
+								marker.effect <- data.frame(gsub(marker.name, "", rownames(marker.effect)), marker.effect);
+								colnames(marker.effect) <- c(marker.name, "M_Effect");
+								rownames(marker.effect) <- NULL;
+								#--- env effect ---#
+								env.effect <- eval(parse(text = paste("ranef(model)$'", env, "'", sep = "")));
+								env.effect <- data.frame(gsub(env, "", rownames(env.effect)), env.effect);
+								colnames(env.effect) <- c(env, "E_Effect");
+								rownames(env.effect) <- NULL;
+								#--- marker by env effect ---#
+								mxe.effect <- eval(parse(text = paste("ranef(model)$'", marker.name, ":", env,"'", sep = "")));
+								names <- t(as.data.frame(strsplit(rownames(mxe.effect), ":")));
+								mxe.effect <- data.frame(names[,1], names[,2], mxe.effect + intercept);
+								colnames(mxe.effect) <- c(marker.name, env, "MxE.Effect");
+								rownames(mxe.effect) <- NULL;					
+								#--- marker by env means---#
+								mxe.means <- merge(mxe.effect, env.effect, by = env, all = TRUE);
+								mxe.means <- merge(mxe.means, marker.effect, by = marker.name, all = TRUE);
+								mxe.means <- data.frame(mxe.means[,match(marker.name, names(mxe.means))], mxe.means[,match(env, names(mxe.means))], rowSums(subset(mxe.means, select = c(MxE.Effect, E_Effect, M_Effect)), na.rm = TRUE));
+								colnames(mxe.means) <- c(marker.name, env, "LSMean");
+								adjust.means <- mxe.means;
+								#result$traits[[i]]$markers[[j]]$adjust.means <- adjust.means;
+								env.levels <- levels(adjust.means[ , env]);
+								temp.means <- c();
+								for(k in 1:length(env.levels))
+								{	
+									env.name <- env.levels[k];
+									env.means <- adjust.means[adjust.means[ , env] == env.name, ];
+									rp.means <- if(rp.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == rp.code,3], digits) else NA;
+									ht.means <- if(ht.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == ht.code,3], digits) else NA;
+									dp.means <- if(dp.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == dp.code,3], digits) else NA;					
+									temp <- c(marker.name, env.name, rp.means, ht.means, dp.means);
+									temp.means <- rbind(temp.means, temp);
+								}
+								#--- a formatted variance table ---#	
+								model2 <- update(model, formula(paste(". ~ . - (1|", marker.name, ":", env, ")", sep = "")));
+								model.aov <- anova(model);
+								marker.sq <- signif(model.aov$"Sum Sq", digits);
+								marker.p <- signif(model.aov$"F value", digits);
+								model.com.aov <- anova(model2, model);
+								marker.env.p <- signif(model.com.aov[[8]][2], digits);
+								temp.var.table <- c(marker.name, paste(marker.sq, " (", marker.p, ")", sep = ""));
+								temp.p.table <- c(marker.name, marker.p, marker.env.p);
+							} #--- end of if(is.EnvFixed) ---#
+							
+							means.out <- rbind(means.out, temp.means);
+							var.table <- cbind(var.table, temp.var.table);
+							p.table <- rbind(p.table, temp.p.table);
+						} #--- end of for(k in 1:marker.number)---#
+						
+						rownames(means.out) <- NULL;
+						colnames(var.table) <- NULL;
+						rownames(p.table) <- NULL;
+						
+						colnames(means.out) <- c("Marker","Env", "mm", "Mm", "MM");
+						if(is.EnvFixed) 
+						{
+							rownames(var.table) <- c("Marker", "M SS(P.value)", "E SS (P.value)", "MxE SS (P.value)", "Residuals SS");
+						} else
+						{
+							rownames(var.table) <- c("Marker", "M SS(P.value)");
+						}
+						colnames(p.table) <- c("Marker", "P.value(M)", "P.value(MxE)")
+						
+						phenotypicData$traits[[j]]$analysis$sma$means.table <- means.out;
+						phenotypicData$traits[[j]]$analysis$sma$var.table <- var.table;
+						phenotypicData$traits[[j]]$analysis$sma$p.table <- p.table;
+						
+						detach("package:lme4", unload=TRUE);
+					} else
+					{
+						#--- if not include environment, separated process single marker analysis ---#
+						#--- and then merge all the outcomes into table---#
+						for(k in 1:length(phenotypicData$traits[[j]]$envs))
+						{
+							env.name <- phenotypicData$traits[[j]]$envs[[k]]$name;
+							geno.name.phenotypicData <- phenotypicData$traits[[j]]$envs[[k]]$design$geno;
+							geno.name.genotypicData <- genotypicData$geno.name;
+							data <- merge(phenotypicData$traits[[j]]$envs[[k]]$data, genotypicData.restricted, by.x = geno.name.phenotypicData, by.y = geno.name.genotypicData);
+							data[,geno.name.phenotypicData] <- as.factor(data[,geno.name.phenotypicData]);
+							data[,trait.name] <- as.numeric(as.character(data[,trait.name]));
+							#---do each marker anlysis ---#
+							for(n in 1:marker.number)
+							{
+								marker.name <- marker.names[n];
+								myformula <- c();
+								myformula <- paste(trait.name, " ~ 1 + ", marker.name, sep = "");
+								model <- try(lm(formula(myformula), data = data), silent = TRUE);
+								if(!is.null(model) && class(model) == "try-error")
+								{
+									warning(paste("\tWarning: There are error occured on this marker, i.e. ", marker.name, ".\n", sep = ""));
+									next;
+								}
+#								phenotypicData$traits[[j]]$analysis$sma$markers[[n]]$name <- marker.name;
+#								phenotypicData$traits[[j]]$analysis$sma$markers[[n]]$myformula <- myformula;
+#								phenotypicData$traits[[j]]$analysis$sma$markers[[n]]$model <- model;
+								
+								adjust.means <- lsmeans(model, specs = marker.name, weights = "cells");
+								adjust.means <- summary(adjust.means)[,c(1:3)];
+#								phenotypicData$traits[[j]]$analysis$sma$markers[[n]]$adjust.means <- adjust.means;
+								rp.means <- if(rp.code %in% adjust.means[ , marker.name]) signif(adjust.means[adjust.means[ , marker.name] == rp.code, 2], digits) else NA;
+								ht.means <- if(ht.code %in% adjust.means[ , marker.name]) signif(adjust.means[adjust.means[ , marker.name] == ht.code, 2], digits) else NA;
+								dp.means <- if(dp.code %in% adjust.means[ , marker.name]) signif(adjust.means[adjust.means[ , marker.name] == dp.code, 2], digits) else NA;
+								temp.means <- c(marker.name, rp.means, ht.means, dp.means, env.name);
+								#--- a formatted variance table ---#	
+								model.aov <- anova(model);
+								model.aov.rownames <- rownames(model.aov[1]);
+								marker.sq <- if(marker.name %in% model.aov.rownames) signif(model.aov[model.aov.rownames == marker.name, ]$"Sum Sq", digits) else NA;
+								marker.p <-  if(marker.name %in% model.aov.rownames) signif(model.aov[model.aov.rownames == marker.name, ]$"Pr(>F)", digits) else NA;
+								residuals.sq <- if("Residuals" %in% model.aov.rownames) signif(model.aov[model.aov.rownames == "Residuals", ]$"Sum Sq", digits) else NA;
+								residuals.p <-  if("Residuals" %in% model.aov.rownames) signif(model.aov[model.aov.rownames == "Residuals", ]$"Pr(>F)", digits) else NA; 
+								
+								temp.var.table <- rbind(marker.name, paste(marker.sq, " (", marker.p, ")", sep = ""), residuals.sq, env.name);
+								temp.p.table <- c(marker.name, marker.p, env.name);
+								
+								means.out <- rbind(means.out, temp.means);
+								var.table <- cbind(var.table, temp.var.table);
+								p.table <- rbind(p.table, temp.p.table);
+								
+							} #--- end stmt of for(n in 1:marker.number)---#
+						} #--- end stmt of for(k in 1:length(phenotypicData$traits[[j]]$envs)) ---#
+						rownames(means.out) <- NULL;
+						colnames(var.table) <- NULL;
+						rownames(p.table) <- NULL;
+						
+						colnames(means.out) <- c("Marker", "mm", "Mm", "MM", "Env");
+						rownames(var.table) <- c("Marker", "M SS (p.value)", "Residuals SS", "Env");
+						var.table <- t(var.table);
+						colnames(p.table) <- c("Marker", "P.value(M)", "Env");
+					} #--end stmt of if(include.env) ---#
+					phenotypicData$traits[[j]]$analysis$sma$means.table <- means.out;
+					phenotypicData$traits[[j]]$analysis$sma$var.table <- var.table;
+					phenotypicData$traits[[j]]$analysis$sma$p.table <- p.table;
+				} else
+				{
+					next;
+				} #--end stmt of if(identical(resp.var[i], phenotypicData$traits[[j]]$name))---#
+			} #--- end stmt of for( j in 1:length(phenotypicData$traits)) ---#
+		} #--- end stmt of for(i in 1:length(resp.var)---#
+		
+		phenotypicData$genotypicData <- genotypicData;
+		detach("package:lsmeans", unload = TRUE);
+		options(old.options);
+		class(phenotypicData) <- c("SingleMarkerAnalysis", class(phenotypicData));
+		return(phenotypicData);
 	} else
 	{
 		stop("\tError: It could not process single marker analysis on raw phenotypic data!\n");
@@ -108,13 +391,329 @@ doSMA.SingleEnvAnalysis <- function(
 #		geno,
 #		env,
 		resp.var,
+		include.env = TRUE,
 		is.EnvFixed = TRUE,
 		include.ht = FALSE,
-		test = c("F", "Chisq"),
+#		test = c("F", "Chisq"),
 		digits = 4,
 		...
 )
 {
+	#--- checking resp.var whether exists in the phenotypic data, ortherwise using all traits in the phenotypicData ---#
+	if(!missing(resp.var))
+	{
+		trait.names <- phenotypicData$trait.names;
+		temp.resp.var <- c();
+		for(i in 1:length(resp.var))
+		{
+			if(resp.var[i] %in% trait.names)
+			{
+				temp.resp.var <- c(temp.resp.var, resp.var[i]);
+			} else
+			{
+				warings(paste("\tWarnings: It will be omitted the ", resp.var[i], " because of it is not exist!\n", sep = ""));
+			}
+		}
+		if(length(temp.resp.var) == 0)
+			stop("\tError: All the specified resp.var are not exists in the phenotypicdata!\n");
+		resp.var <- temp.resp.var;
+	} else
+	{
+		resp.var <- phenotypicData$trait.names;
+	}
+	
+	if(!genotypicData$isRestricted)
+	{
+		warnings("\tWarning: It will be used default argument to restrict genotypic data!\n");
+		genotypicData <- restrict.geno.data(genotypicData);
+	}
+	
+	#---getting all the requried informations---#
+	genotypicData.restricted <- genotypicData$restricted$data;
+	marker.number <- ncol(genotypicData.restricted) - 1;
+	marker.names <- colnames(genotypicData.restricted)[-1];
+	#---suppress warn message---#
+	old.options <- options();
+	options(warn = -1);
+	library("lsmeans");
+	
+	#--- reformat all genotypic data using dp.code instead of ht.code basing on include.ht ----#
+	#--- Because it will recode to default coding sytem, it could be define such code directly!---#
+	dp.code <- 2;
+	rp.code <- 0;
+	ht.code <- 1;
+	na.code <- NA;
+	if(include.ht)
+	{
+		genotypicData.restricted[,-1][genotypicData[,-1] == ht.code] <- dp.code;
+	}
+	
+	genotypicData.restricted <- apply(genotypicData.restricted, 2, factor);
+	#--- checking whether is single environment---#
+	if(include.env && phenotypicData$isSingleEnv)
+	{	
+		include.env <- FALSE;
+		warning("\tWarnings: The phenotypic data is single environmental data and The is.EnvFixed paramter will be omitted!\n");
+	}
+	
+	for(i in 1:length(resp.var))
+	{
+		#--- checking whether the resp.var name is the trait name of phenotypicData---#
+		for(j in 1:length(phenotypicData$traits))
+		{
+			if(identical(resp.var[i], phenotypicData$traits[[j]]$name))
+			{
+				
+				trait.name <- resp.var[i];
+				#--- checking whether this trait is done single environment analysis, if not, try next ---#
+				if(is.null(phenotypicData$traits[[j]]$analysis$sea))
+				{
+					warning("\tThis trait", trait.name, "does not conduct single environment analysis yet! It will be omitted!\n");
+					next;
+				}
+				#--- adding Mean postfix on trait.name, becuase of single environment analysis sum out of data ---#
+				trait.name <- paste(trait.name, "_Mean", sep = "");
+				#--- checking the analysis structure of phenotypicData--#
+				if(is.null(phenotypicData$traits[[j]]$analysis))
+					phenotypicData$traits[[j]]$analysis <- list();
+				if(is.null(phenotypicData$traits[[j]]$analysis$sma))
+				{
+					phenotypicData$traits[[j]]$analysis$sma <- list();
+				} else
+				{
+					phenotypicData$traits[[j]]$analysis$sma <- NULL;
+					phenotypicData$traits[[j]]$analysis$sma <- list();
+				}
+				phenotypicData$traits[[j]]$analysis$sma$include.env <- include.env;
+				phenotypicData$traits[[j]]$analysis$sma$is.EnvFixed <- is.EnvFixed;
+				phenotypicData$traits[[j]]$analysis$sma$include.ht <- include.ht;
+				phenotypicData$traits[[j]]$analysis$sma$marker.number <- marker.number;
+				
+				means.out <- c();
+				var.table <- c();
+				p.table <- c();
+				
+				#---according to whether including env to determinate how to analysis single marker ---#
+				if(include.env)
+				{
+					#--- combined all single environmental analysis data into one data frame---#
+					temp.phenotypicData <- c();
+					env <- c();
+					for(k in 1:length(phenotypicData$traits[[j]]$analysis$sea$envs))
+					{
+						temp.phenotypicData <- rbind(temp.phenotypicData, phenotypicData$traits[[j]]$analysis$sea$envs[[k]]$sum.out);
+						if(length(env) == 0)
+							env <- phenotypicData$traits[[j]]$envs[[k]]$design$env;
+					}
+					#--- merge phenotypicData and genotoypicData into one data frame ---#
+					geno.name.phenotypicData <- phenotypicData$traits[[j]]$envs[[1]]$design$geno;
+					geno.name.genotypicData <- genotypicData$geno.name;
+					data <- merge(temp.phenotypicData, genotypicData.restricted, by.x = geno.name.phenotypicData, by.y = geno.name.genotypicData);
+					data[,env] <- as.factor(data[,env]);
+					data[,trait.name] <- as.numeric(as.character(data[,trait.name]));
+					
+					library("lme4");
+					
+					for(k in 1:marker.number)
+					{
+						marker.name <- marker.names[k];
+						myformula <- c();
+						
+						if(is.EnvFixed)
+						{
+							myformula <- paste(trait.name, " ~ 1 + ", marker.name, " + ", env, " + ", marker.name, " : ", env, sep = "");
+							model <- try(lm(formula(myformula), data = data), silent = TRUE);
+							if(!is.null(model) && class(model) == "try-error")
+							{
+								warning(paste("\tWarning: There are error occured on this marker, i.e. ", marker.name, ".\n", sep = ""));
+								next;
+							}
+							adjust.means <- lsmeans(model, specs = marker.name, by = env, weights = "cells");
+							adjust.means <- summary(adjust.means)[ , c(1:3)];
+							env.levels <- levels(adjust.means[,env]);
+							temp.means <- c();
+							for(k in 1:length(env.levels))
+							{	
+								env.name <- env.levels[k];
+								env.means <- adjust.means[adjust.means[ , env] == env.name, ];
+								rp.means <- if(rp.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == rp.code,3], digits) else NA;
+								ht.means <- if(ht.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == ht.code,3], digits) else NA;
+								dp.means <- if(dp.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == dp.code,3], digits) else NA;					
+								temp <- c(marker.name, env.name, rp.means, ht.means, dp.means);
+								temp.means <- rbind(temp.means, temp);
+							}
+							
+							#--- a formatted variance table ---#	
+							model.aov <- anova(model);
+							model.aov.rownames <- rownames(model.aov[1]);
+							marker.sq <- if(marker.name %in% model.aov.rownames) signif(model.aov[model.aov.rownames == marker.name, ]$"Sum Sq", digits) else NA;
+							marker.p <-  if(marker.name %in% model.aov.rownames) signif(model.aov[model.aov.rownames == marker.name, ]$"Pr(>F)", digits) else NA;
+							env.sq <- if(env %in% model.aov.rownames) signif(model.aov[model.aov.rownames == env, ]$"Sum Sq", digits) else NA;
+							env.p <-  if(env %in% model.aov.rownames) signif(model.aov[model.aov.rownames == env, ]$"Pr(>F)", digits) else NA;
+							marker.env.sq <- if(paste(marker.name, ":", env, sep="") %in% model.aov.rownames) signif(model.aov[model.aov.rownames == paste(marker.name, ":", env, sep=""), ]$"Sum Sq", digits) else NA;
+							marker.env.p <- if(paste(marker.name, ":", env, sep="") %in% model.aov.rownames) signif(model.aov[model.aov.rownames == paste(marker.name, ":", env, sep=""), ]$"Pr(>F)", digits) else NA;
+							residuals.sq <- if("Residuals" %in% model.aov.rownames) signif(model.aov[model.aov.rownames == "Residuals", ]$"Sum Sq", digits) else NA;
+							residuals.p <-  if("Residuals" %in% model.aov.rownames) signif(model.aov[model.aov.rownames == "Residuals", ]$"Pr(>F)", digits) else NA; 
+							
+							temp.var.table <- rbind(marker.name, paste(marker.sq, " (", marker.p, ")", sep = ""), paste(env.sq, " (", env.p, ")", sep = ""), paste(marker.env.sq, " (", marker.env.p, ")", sep = ""), residuals.sq);
+							temp.p.table <- c(marker.name, marker.p, marker.env.p);
+						} else
+						{
+							myformula <- paste(trait.name, " ~ 1 + ", marker.name, " + ", "(1|", env, ") + (1|", marker.name, " : ", env, ") ", sep = "");
+							model <- try(lmer(formula(myformula), data = data), silent = TRUE);
+							if(!is.null(model) && class(model) == "try-error")
+							{
+								warning(paste("\tWarning: There are error occured on this marker, i.e. ", marker.name, ".\n", sep = ""));
+								next;
+							}
+							#--- when env is random, contrust a means variance table ---#
+							#--- marker effect---#
+							intercept <- fixef(model)[[1]];
+							marker.effect <- as.data.frame(fixef(model)[-1]);
+							marker.effect <- data.frame(gsub(marker.name, "", rownames(marker.effect)), marker.effect);
+							colnames(marker.effect) <- c(marker.name, "M_Effect");
+							rownames(marker.effect) <- NULL;
+							#--- env effect ---#
+							env.effect <- eval(parse(text = paste("ranef(model)$'", env, "'", sep = "")));
+							env.effect <- data.frame(gsub(env, "", rownames(env.effect)), env.effect);
+							colnames(env.effect) <- c(env, "E_Effect");
+							rownames(env.effect) <- NULL;
+							#--- marker by env effect ---#
+							mxe.effect <- eval(parse(text = paste("ranef(model)$'", marker.name, ":", env,"'", sep = "")));
+							names <- t(as.data.frame(strsplit(rownames(mxe.effect), ":")));
+							mxe.effect <- data.frame(names[,1], names[,2], mxe.effect + intercept);
+							colnames(mxe.effect) <- c(marker.name, env, "MxE.Effect");
+							rownames(mxe.effect) <- NULL;					
+							#--- marker by env means---#
+							mxe.means <- merge(mxe.effect, env.effect, by = env, all = TRUE);
+							mxe.means <- merge(mxe.means, marker.effect, by = marker.name, all = TRUE);
+							mxe.means <- data.frame(mxe.means[,match(marker.name, names(mxe.means))], mxe.means[,match(env, names(mxe.means))], rowSums(subset(mxe.means, select = c(MxE.Effect, E_Effect, M_Effect)), na.rm = TRUE));
+							colnames(mxe.means) <- c(marker.name, env, "LSMean");
+							adjust.means <- mxe.means;
+							#result$traits[[i]]$markers[[j]]$adjust.means <- adjust.means;
+							env.levels <- levels(adjust.means[ , env]);
+							temp.means <- c();
+							for(k in 1:length(env.levels))
+							{	
+								env.name <- env.levels[k];
+								env.means <- adjust.means[adjust.means[ , env] == env.name, ];
+								rp.means <- if(rp.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == rp.code,3], digits) else NA;
+								ht.means <- if(ht.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == ht.code,3], digits) else NA;
+								dp.means <- if(dp.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == dp.code,3], digits) else NA;					
+								temp <- c(marker.name, env.name, rp.means, ht.means, dp.means);
+								temp.means <- rbind(temp.means, temp);
+							}
+							#--- a formatted variance table ---#	
+							model2 <- update(model, formula(paste(". ~ . - (1|", marker.name, ":", env, ")", sep = "")));
+							model.aov <- anova(model);
+							marker.sq <- signif(model.aov$"Sum Sq", digits);
+							marker.p <- signif(model.aov$"F value", digits);
+							model.com.aov <- anova(model2, model);
+							marker.env.p <- signif(model.com.aov[[8]][2], digits);
+							temp.var.table <- c(marker.name, paste(marker.sq, " (", marker.p, ")", sep = ""));
+							temp.p.table <- c(marker.name, marker.p, marker.env.p);
+						} #--- end of if(is.EnvFixed) ---#
+						
+						means.out <- rbind(means.out, temp.means);
+						var.table <- cbind(var.table, temp.var.table);
+						p.table <- rbind(p.table, temp.p.table);
+					} #--- end of for(k in 1:marker.number)---#
+					
+					rownames(means.out) <- NULL;
+					colnames(var.table) <- NULL;
+					rownames(p.table) <- NULL;
+					
+					colnames(means.out) <- c("Marker","Env", "mm", "Mm", "MM");
+					if(is.EnvFixed) 
+					{
+						rownames(var.table) <- c("Marker", "M SS(P.value)", "E SS (P.value)", "MxE SS (P.value)", "Residuals SS");
+					} else
+					{
+						rownames(var.table) <- c("Marker", "M SS(P.value)");
+					}
+					colnames(p.table) <- c("Marker", "P.value(M)", "P.value(MxE)")
+					
+					phenotypicData$traits[[j]]$analysis$sma$means.table <- means.out;
+					phenotypicData$traits[[j]]$analysis$sma$var.table <- var.table;
+					phenotypicData$traits[[j]]$analysis$sma$p.table <- p.table;
+					
+					detach("package:lme4", unload=TRUE);
+				} else
+				{
+					#--- if not include environment, separated process single marker analysis ---#
+					#--- and then merge all the outcomes into table---#
+					for(k in 1:length(phenotypicData$traits[[j]]$analysis$sea$envs))
+					{
+						env.name <- phenotypicData$traits[[j]]$analysis$sea$envs[[k]]$name;
+						geno.name.phenotypicData <- phenotypicData$traits[[j]]$envs[[k]]$design$geno;
+						geno.name.genotypicData <- genotypicData$geno.name;
+						data <- merge(phenotypicData$traits[[j]]$analysis$sea$envs[[k]]$sum.out, genotypicData.restricted, by.x = geno.name.phenotypicData, by.y = geno.name.genotypicData);
+						data[,geno.name.phenotypicData] <- as.factor(data[,geno.name.phenotypicData]);
+						data[,trait.name] <- as.numeric(as.character(data[,trait.name]));
+						#---do each marker anlysis ---#
+						for(n in 1:marker.number)
+						{
+							marker.name <- marker.names[n];
+							myformula <- c();
+							myformula <- paste(trait.name, " ~ 1 + ", marker.name, sep = "");
+							model <- try(lm(formula(myformula), data = data), silent = TRUE);
+							if(!is.null(model) && class(model) == "try-error")
+							{
+								warning(paste("\tWarning: There are error occured on this marker, i.e. ", marker.name, ".\n", sep = ""));
+								next;
+							}
+#								phenotypicData$traits[[j]]$analysis$sma$markers[[n]]$name <- marker.name;
+#								phenotypicData$traits[[j]]$analysis$sma$markers[[n]]$myformula <- myformula;
+#								phenotypicData$traits[[j]]$analysis$sma$markers[[n]]$model <- model;
+							
+							adjust.means <- lsmeans(model, specs = marker.name, weights = "cells");
+							adjust.means <- summary(adjust.means)[,c(1:3)];
+#								phenotypicData$traits[[j]]$analysis$sma$markers[[n]]$adjust.means <- adjust.means;
+							rp.means <- if(rp.code %in% adjust.means[ , marker.name]) signif(adjust.means[adjust.means[ , marker.name] == rp.code, 2], digits) else NA;
+							ht.means <- if(ht.code %in% adjust.means[ , marker.name]) signif(adjust.means[adjust.means[ , marker.name] == ht.code, 2], digits) else NA;
+							dp.means <- if(dp.code %in% adjust.means[ , marker.name]) signif(adjust.means[adjust.means[ , marker.name] == dp.code, 2], digits) else NA;
+							temp.means <- c(marker.name, rp.means, ht.means, dp.means, env.name);
+							#--- a formatted variance table ---#	
+							model.aov <- anova(model);
+							model.aov.rownames <- rownames(model.aov[1]);
+							marker.sq <- if(marker.name %in% model.aov.rownames) signif(model.aov[model.aov.rownames == marker.name, ]$"Sum Sq", digits) else NA;
+							marker.p <-  if(marker.name %in% model.aov.rownames) signif(model.aov[model.aov.rownames == marker.name, ]$"Pr(>F)", digits) else NA;
+							residuals.sq <- if("Residuals" %in% model.aov.rownames) signif(model.aov[model.aov.rownames == "Residuals", ]$"Sum Sq", digits) else NA;
+							residuals.p <-  if("Residuals" %in% model.aov.rownames) signif(model.aov[model.aov.rownames == "Residuals", ]$"Pr(>F)", digits) else NA; 
+							
+							temp.var.table <- rbind(marker.name, paste(marker.sq, " (", marker.p, ")", sep = ""), residuals.sq, env.name);
+							temp.p.table <- c(marker.name, marker.p, env.name);
+							
+							means.out <- rbind(means.out, temp.means);
+							var.table <- cbind(var.table, temp.var.table);
+							p.table <- rbind(p.table, temp.p.table);
+							
+						} #--- end stmt of for(n in 1:marker.number)---#
+					} #--- end stmt of for(k in 1:length(phenotypicData$traits[[j]]$envs)) ---#
+					rownames(means.out) <- NULL;
+					colnames(var.table) <- NULL;
+					rownames(p.table) <- NULL;
+					
+					colnames(means.out) <- c("Marker", "mm", "Mm", "MM", "Env");
+					rownames(var.table) <- c("Marker", "M SS (p.value)", "Residuals SS", "Env");
+					var.table <- t(var.table);
+					colnames(p.table) <- c("Marker", "P.value(M)", "Env");
+				} #--end stmt of if(include.env) ---#
+				phenotypicData$traits[[j]]$analysis$sma$means.table <- means.out;
+				phenotypicData$traits[[j]]$analysis$sma$var.table <- var.table;
+				phenotypicData$traits[[j]]$analysis$sma$p.table <- p.table;
+			} else
+			{
+				next;
+			} #--end stmt of if(identical(resp.var[i], phenotypicData$traits[[j]]$name))---#
+		} #--- end stmt of for( j in 1:length(phenotypicData$traits)) ---#
+	} #--- end stmt of for(i in 1:length(resp.var)---#
+	
+	phenotypicData$genotypicData <- genotypicData;
+	detach("package:lsmeans", unload = TRUE);
+	options(old.options);
+	class(phenotypicData) <- c("SingleMarkerAnalysis", class(phenotypicData));
+	return(phenotypicData);
 	
 }
 
@@ -125,20 +724,411 @@ doSMA.MultiEnvAnalysis <- function(
 #		geno,
 #		env,
 		resp.var,
+		include.env = TRUE,
 		is.EnvFixed = TRUE,
 		include.ht = FALSE,
-		test = c("F", "Chisq"),
+#		test = c("F", "Chisq"),
 		digits = 4,
 		...
 )
 {
+	#--- checking resp.var whether exists in the phenotypic data, ortherwise using all traits in the phenotypicData ---#
+	if(!missing(resp.var))
+	{
+		trait.names <- phenotypicData$trait.names;
+		temp.resp.var <- c();
+		for(i in 1:length(resp.var))
+		{
+			if(resp.var[i] %in% trait.names)
+			{
+				temp.resp.var <- c(temp.resp.var, resp.var[i]);
+			} else
+			{
+				warings(paste("\tWarnings: It will be omitted the ", resp.var[i], " because of it is not exist!\n", sep = ""));
+			}
+		}
+		if(length(temp.resp.var) == 0)
+			stop("\tError: All the specified resp.var are not exists in the phenotypicdata!\n");
+		resp.var <- temp.resp.var;
+	} else
+	{
+		resp.var <- phenotypicData$trait.names;
+	}
 	
+	if(!genotypicData$isRestricted)
+	{
+		warnings("\tWarning: It will be used default argument to restrict genotypic data!\n");
+		genotypicData <- restrict.geno.data(genotypicData);
+	}
+	
+	#---getting all the requried informations---#
+	genotypicData.restricted <- genotypicData$restricted$data;
+	marker.number <- ncol(genotypicData.restricted) - 1;
+	marker.names <- colnames(genotypicData.restricted)[-1];
+	#---suppress warn message---#
+	old.options <- options();
+	options(warn = -1);
+	library("lsmeans");
+	
+	#--- reformat all genotypic data using dp.code instead of ht.code basing on include.ht ----#
+	#--- Because it will recode to default coding sytem, it could be define such code directly!---#
+	dp.code <- 2;
+	rp.code <- 0;
+	ht.code <- 1;
+	na.code <- NA;
+	if(include.ht)
+	{
+		genotypicData.restricted[,-1][genotypicData[,-1] == ht.code] <- dp.code;
+	}
+	genotypicData.restricted <- apply(genotypicData.restricted, 2, factor);
+	
+	#--- checking whether is single environment---#
+	if(include.env && phenotypicData$isSingleEnv)
+	{	
+		include.env <- FALSE;
+		warning("\tWarnings: The phenotypic data is single environmental data and The is.EnvFixed paramter will be omitted!\n");
+	}
+	
+	for(i in 1:length(resp.var))
+	{
+		#--- checking whether the resp.var name is the trait name of phenotypicData---#
+		for(j in 1:length(phenotypicData$traits))
+		{
+			if(identical(resp.var[i], phenotypicData$traits[[j]]$name))
+			{
+				trait.name <- resp.var[i];
+				#--- check whether this trait is conducted multi environment analysis---#
+				if(is.null(phenotypicData$traits[[j]]$analysis$mea))
+				{
+					warning("\tWarning: This trait", trait.name, "does not conduct multi environment analysis! It will be omitted!\n");
+					next;
+				}
+				trait.name <- paste(trait.name, "_LSMean", sep = ""	);
+				#--- checking the analysis structure of phenotypicData--#
+				if(is.null(phenotypicData$traits[[j]]$analysis))
+					phenotypicData$traits[[j]]$analysis <- list();
+				if(is.null(phenotypicData$traits[[j]]$analysis$sma))
+				{
+					phenotypicData$traits[[j]]$analysis$sma <- list();
+				} else
+				{
+					phenotypicData$traits[[j]]$analysis$sma <- NULL;
+					phenotypicData$traits[[j]]$analysis$sma <- list();
+				}
+				phenotypicData$traits[[j]]$analysis$sma$include.env <- include.env;
+				phenotypicData$traits[[j]]$analysis$sma$is.EnvFixed <- is.EnvFixed;
+				phenotypicData$traits[[j]]$analysis$sma$include.ht <- include.ht;
+				phenotypicData$traits[[j]]$analysis$sma$marker.number <- marker.number;
+				
+				means.out <- c();
+				var.table <- c();
+				p.table <- c();
+				
+				#---according to whether including env to determinate how to analysis single marker ---#
+				if(include.env)
+				{
+					#--- combined all environmental data into one data frame---#
+					temp.phenotypicData <- c();
+					env <- c();
+#					for(k in 1:length(phenotypicData$traits[[j]]$envs))
+#					{
+#						temp.phenotypicData <- rbind(temp.phenotypicData, phenotypicData$traits[[j]]$analysis$mea$data);
+#						if(length(env) == 0)
+#							env <- phenotypicData$traits[[j]]$envs[[k]]$design$env;
+#					}
+					temp.phenotypicData <- phenotypicData$traits[[j]]$analysis$mea$means.GenoEnv;
+					env <- phenotypicData$traits[[j]]$envs[[1]]$design$env;
+					
+					#--- merge phenotypicData and genotoypicData into one data frame ---#
+					geno.name.phenotypicData <- phenotypicData$traits[[j]]$envs[[1]]$design$geno;
+					geno.name.genotypicData <- genotypicData$geno.name;
+					data <- merge(temp.phenotypicData, genotypicData.restricted, by.x = geno.name.phenotypicData, by.y = geno.name.genotypicData);
+					data[,trait.name] <- as.numeric(as.character(data[,trait.name]));
+					data[,env] <- as.factor(data[,env]);
+					
+					library("lme4");
+					
+					for(k in 1:marker.number)
+					{
+						marker.name <- marker.names[k];
+						myformula <- c();
+						
+						if(is.EnvFixed)
+						{
+							myformula <- paste(trait.name, " ~ 1 + ", marker.name, " + ", env, " + ", marker.name, " : ", env, sep = "");
+							model <- try(lm(formula(myformula), data = data), silent = TRUE);
+							if(!is.null(model) && class(model) == "try-error")
+							{
+								warning(paste("\tWarning: There are error occured on this marker, i.e. ", marker.name, ".\n", sep = ""));
+								next;
+							}
+							adjust.means <- lsmeans(model, specs = marker.name, by = env, weights = "cells");
+							adjust.means <- summary(adjust.means)[ , c(1:3)];
+							env.levels <- levels(adjust.means[,env]);
+							temp.means <- c();
+							for(k in 1:length(env.levels))
+							{	
+								env.name <- env.levels[k];
+								env.means <- adjust.means[adjust.means[ , env] == env.name, ];
+								rp.means <- if(rp.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == rp.code,3], digits) else NA;
+								ht.means <- if(ht.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == ht.code,3], digits) else NA;
+								dp.means <- if(dp.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == dp.code,3], digits) else NA;					
+								temp <- c(marker.name, env.name, rp.means, ht.means, dp.means);
+								temp.means <- rbind(temp.means, temp);
+							}
+							
+							#--- a formatted variance table ---#	
+							model.aov <- anova(model);
+							model.aov.rownames <- rownames(model.aov[1]);
+							marker.sq <- if(marker.name %in% model.aov.rownames) signif(model.aov[model.aov.rownames == marker.name, ]$"Sum Sq", digits) else NA;
+							marker.p <-  if(marker.name %in% model.aov.rownames) signif(model.aov[model.aov.rownames == marker.name, ]$"Pr(>F)", digits) else NA;
+							env.sq <- if(env %in% model.aov.rownames) signif(model.aov[model.aov.rownames == env, ]$"Sum Sq", digits) else NA;
+							env.p <-  if(env %in% model.aov.rownames) signif(model.aov[model.aov.rownames == env, ]$"Pr(>F)", digits) else NA;
+							marker.env.sq <- if(paste(marker.name, ":", env, sep="") %in% model.aov.rownames) signif(model.aov[model.aov.rownames == paste(marker.name, ":", env, sep=""), ]$"Sum Sq", digits) else NA;
+							marker.env.p <- if(paste(marker.name, ":", env, sep="") %in% model.aov.rownames) signif(model.aov[model.aov.rownames == paste(marker.name, ":", env, sep=""), ]$"Pr(>F)", digits) else NA;
+							residuals.sq <- if("Residuals" %in% model.aov.rownames) signif(model.aov[model.aov.rownames == "Residuals", ]$"Sum Sq", digits) else NA;
+							residuals.p <-  if("Residuals" %in% model.aov.rownames) signif(model.aov[model.aov.rownames == "Residuals", ]$"Pr(>F)", digits) else NA; 
+							
+							temp.var.table <- rbind(marker.name, paste(marker.sq, " (", marker.p, ")", sep = ""), paste(env.sq, " (", env.p, ")", sep = ""), paste(marker.env.sq, " (", marker.env.p, ")", sep = ""), residuals.sq);
+							temp.p.table <- c(marker.name, marker.p, marker.env.p);
+						} else
+						{
+							myformula <- paste(trait.name, " ~ 1 + ", marker.name, " + ", "(1|", env, ") + (1|", marker.name, " : ", env, ") ", sep = "");
+							model <- try(lmer(formula(myformula), data = data), silent = TRUE);
+							if(!is.null(model) && class(model) == "try-error")
+							{
+								warning(paste("\tWarning: There are error occured on this marker, i.e. ", marker.name, ".\n", sep = ""));
+								next;
+							}
+							#--- when env is random, contrust a means variance table ---#
+							#--- marker effect---#
+							intercept <- fixef(model)[[1]];
+							marker.effect <- as.data.frame(fixef(model)[-1]);
+							marker.effect <- data.frame(gsub(marker.name, "", rownames(marker.effect)), marker.effect);
+							colnames(marker.effect) <- c(marker.name, "M_Effect");
+							rownames(marker.effect) <- NULL;
+							#--- env effect ---#
+							env.effect <- eval(parse(text = paste("ranef(model)$'", env, "'", sep = "")));
+							env.effect <- data.frame(gsub(env, "", rownames(env.effect)), env.effect);
+							colnames(env.effect) <- c(env, "E_Effect");
+							rownames(env.effect) <- NULL;
+							#--- marker by env effect ---#
+							mxe.effect <- eval(parse(text = paste("ranef(model)$'", marker.name, ":", env,"'", sep = "")));
+							names <- t(as.data.frame(strsplit(rownames(mxe.effect), ":")));
+							mxe.effect <- data.frame(names[,1], names[,2], mxe.effect + intercept);
+							colnames(mxe.effect) <- c(marker.name, env, "MxE.Effect");
+							rownames(mxe.effect) <- NULL;					
+							#--- marker by env means---#
+							mxe.means <- merge(mxe.effect, env.effect, by = env, all = TRUE);
+							mxe.means <- merge(mxe.means, marker.effect, by = marker.name, all = TRUE);
+							mxe.means <- data.frame(mxe.means[,match(marker.name, names(mxe.means))], mxe.means[,match(env, names(mxe.means))], rowSums(subset(mxe.means, select = c(MxE.Effect, E_Effect, M_Effect)), na.rm = TRUE));
+							colnames(mxe.means) <- c(marker.name, env, "LSMean");
+							adjust.means <- mxe.means;
+							#result$traits[[i]]$markers[[j]]$adjust.means <- adjust.means;
+							env.levels <- levels(adjust.means[ , env]);
+							temp.means <- c();
+							for(k in 1:length(env.levels))
+							{	
+								env.name <- env.levels[k];
+								env.means <- adjust.means[adjust.means[ , env] == env.name, ];
+								rp.means <- if(rp.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == rp.code,3], digits) else NA;
+								ht.means <- if(ht.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == ht.code,3], digits) else NA;
+								dp.means <- if(dp.code %in% env.means[ , marker.name]) signif(env.means[env.means[ , marker.name] == dp.code,3], digits) else NA;					
+								temp <- c(marker.name, env.name, rp.means, ht.means, dp.means);
+								temp.means <- rbind(temp.means, temp);
+							}
+							#--- a formatted variance table ---#	
+							model2 <- update(model, formula(paste(". ~ . - (1|", marker.name, ":", env, ")", sep = "")));
+							model.aov <- anova(model);
+							marker.sq <- signif(model.aov$"Sum Sq", digits);
+							marker.p <- signif(model.aov$"F value", digits);
+							model.com.aov <- anova(model2, model);
+							marker.env.p <- signif(model.com.aov[[8]][2], digits);
+							temp.var.table <- c(marker.name, paste(marker.sq, " (", marker.p, ")", sep = ""));
+							temp.p.table <- c(marker.name, marker.p, marker.env.p);
+						} #--- end of if(is.EnvFixed) ---#
+						
+						means.out <- rbind(means.out, temp.means);
+						var.table <- cbind(var.table, temp.var.table);
+						p.table <- rbind(p.table, temp.p.table);
+					} #--- end of for(k in 1:marker.number)---#
+					
+					rownames(means.out) <- NULL;
+					colnames(var.table) <- NULL;
+					rownames(p.table) <- NULL;
+					
+					colnames(means.out) <- c("Marker","Env", "mm", "Mm", "MM");
+					if(is.EnvFixed) 
+					{
+						rownames(var.table) <- c("Marker", "M SS(P.value)", "E SS (P.value)", "MxE SS (P.value)", "Residuals SS");
+					} else
+					{
+						rownames(var.table) <- c("Marker", "M SS(P.value)");
+					}
+					colnames(p.table) <- c("Marker", "P.value(M)", "P.value(MxE)")
+					
+					phenotypicData$traits[[j]]$analysis$sma$means.table <- means.out;
+					phenotypicData$traits[[j]]$analysis$sma$var.table <- var.table;
+					phenotypicData$traits[[j]]$analysis$sma$p.table <- p.table;
+					
+					detach("package:lme4", unload=TRUE);
+				} else
+				{
+					#--- if not include environment, separated process single marker analysis ---#
+					#--- and then merge all the outcomes into table---#
+					data.total <- phenotypicData$traits[[j]]$analysis$mea$means.GenoEnv;
+					env <- phenotypicData$traits[[j]]$envs[[1]]$design$env;
+					data.total[, env] <- as.factor(data.total[, env]);
+					nlevels.env <- nlevels(data.total[,env]);
+					names.env <- as.character(levels(data.total[,env]));
+					for(k in 1:nlevels.env)
+					{
+						env.name <- names.env[k];
+						geno.name.phenotypicData <- phenotypicData$traits[[j]]$envs[[k]]$design$geno;
+						geno.name.genotypicData <- genotypicData$geno.name;
+						temp.data <- subset(data.total, subset = (data.total[,env] == env.name));
+						data <- merge(temp.data, genotypicData.restricted, by.x = geno.name.phenotypicData, by.y = geno.name.genotypicData);
+						data[,geno.name.phenotypicData] <- as.factor(data[,geno.name.phenotypicData]);
+						data[,trait.name] <- as.numeric(as.character(data[,trait.name]));
+						#---do each marker anlysis ---#
+						for(n in 1:marker.number)
+						{
+							marker.name <- marker.names[n];
+							myformula <- c();
+							myformula <- paste(trait.name, " ~ 1 + ", marker.name, sep = "");
+							model <- try(lm(formula(myformula), data = data), silent = TRUE);
+							if(!is.null(model) && class(model) == "try-error")
+							{
+								warning(paste("\tWarning: There are error occured on this marker, i.e. ", marker.name, ".\n", sep = ""));
+								next;
+							}
+#								phenotypicData$traits[[j]]$analysis$sma$markers[[n]]$name <- marker.name;
+#								phenotypicData$traits[[j]]$analysis$sma$markers[[n]]$myformula <- myformula;
+#								phenotypicData$traits[[j]]$analysis$sma$markers[[n]]$model <- model;
+							
+							adjust.means <- lsmeans(model, specs = marker.name, weights = "cells");
+							adjust.means <- summary(adjust.means)[,c(1:3)];
+#								phenotypicData$traits[[j]]$analysis$sma$markers[[n]]$adjust.means <- adjust.means;
+							rp.means <- if(rp.code %in% adjust.means[ , marker.name]) signif(adjust.means[adjust.means[ , marker.name] == rp.code, 2], digits) else NA;
+							ht.means <- if(ht.code %in% adjust.means[ , marker.name]) signif(adjust.means[adjust.means[ , marker.name] == ht.code, 2], digits) else NA;
+							dp.means <- if(dp.code %in% adjust.means[ , marker.name]) signif(adjust.means[adjust.means[ , marker.name] == dp.code, 2], digits) else NA;
+							temp.means <- c(marker.name, rp.means, ht.means, dp.means, env.name);
+							#--- a formatted variance table ---#	
+							model.aov <- anova(model);
+							model.aov.rownames <- rownames(model.aov[1]);
+							marker.sq <- if(marker.name %in% model.aov.rownames) signif(model.aov[model.aov.rownames == marker.name, ]$"Sum Sq", digits) else NA;
+							marker.p <-  if(marker.name %in% model.aov.rownames) signif(model.aov[model.aov.rownames == marker.name, ]$"Pr(>F)", digits) else NA;
+							residuals.sq <- if("Residuals" %in% model.aov.rownames) signif(model.aov[model.aov.rownames == "Residuals", ]$"Sum Sq", digits) else NA;
+							residuals.p <-  if("Residuals" %in% model.aov.rownames) signif(model.aov[model.aov.rownames == "Residuals", ]$"Pr(>F)", digits) else NA; 
+							
+							temp.var.table <- rbind(marker.name, paste(marker.sq, " (", marker.p, ")", sep = ""), residuals.sq, env.name);
+							temp.p.table <- c(marker.name, marker.p, env.name);
+							
+							means.out <- rbind(means.out, temp.means);
+							var.table <- cbind(var.table, temp.var.table);
+							p.table <- rbind(p.table, temp.p.table);
+							
+						} #--- end stmt of for(n in 1:marker.number)---#
+					} #--- end stmt of for(k in 1:length(phenotypicData$traits[[j]]$envs)) ---#
+					rownames(means.out) <- NULL;
+					colnames(var.table) <- NULL;
+					rownames(p.table) <- NULL;
+					
+					colnames(means.out) <- c("Marker", "mm", "Mm", "MM", "Env");
+					rownames(var.table) <- c("Marker", "M SS (p.value)", "Residuals SS", "Env");
+					var.table <- t(var.table);
+					colnames(p.table) <- c("Marker", "P.value(M)", "Env");
+				} #--end stmt of if(include.env) ---#
+				phenotypicData$traits[[j]]$analysis$sma$means.table <- means.out;
+				phenotypicData$traits[[j]]$analysis$sma$var.table <- var.table;
+				phenotypicData$traits[[j]]$analysis$sma$p.table <- p.table;
+			} else
+			{
+				next;
+			} #--end stmt of if(identical(resp.var[i], phenotypicData$traits[[j]]$name))---#
+		} #--- end stmt of for( j in 1:length(phenotypicData$traits)) ---#
+	} #--- end stmt of for(i in 1:length(resp.var)---#
+	
+	phenotypicData$genotypicData <- genotypicData;
+	detach("package:lsmeans", unload = TRUE);
+	options(old.options);
+	class(phenotypicData) <- c("SingleMarkerAnalysis", class(phenotypicData));
+	return(phenotypicData);
 }
 
-
-
-
-
+print.SingleMarkerAnalysis <- function(
+		data, 
+		levels = c("SIG", "ALL"), 
+		p.value = 0.05
+)
+{
+	levels <- match.arg(levels);
+	if(identical(levels, "SIG"))
+	{
+		if(missing(p.value))
+			p.value <- 0.05;
+	}
+	cat(rep("=", 50), "\n", sep ="");
+	cat("Single Marker Analysis\n");
+	cat(rep("=", 50), "\n", sep ="");
+	for(i in 1:length(data$traits))
+	{
+		if(is.null(data$traits[[i]]$analysis$sma))
+			next;
+		cat("Trait Name:", data$traits[[i]]$name, ".\n", sep = "");
+		cat("Including Environment:", ifelse(data$traits[[i]]$analysis$sma$include.env, 
+						"TRUE", "FALSE"),".\n", sep = "");
+		cat("Environment as Fixed:", ifelse(data$traits[[i]]$analysis$sma$include.env, 
+						ifelse(data$traits[[i]]$analysis$sma$isEnvFixed,"TRUE", "FALSE"),
+						"NA"), ".\n", sep ="");
+		cat("Marker Number:", data$traits[[i]]$analysis$sma$marker.number, ".\n", sep = "");
+		cat("\n");
+		p.table <- as.data.frame(data$traits[[i]]$analysis$sma$p.table);
+		
+		means.table <- as.data.frame(data$traits[[i]]$analysis$sma$means.table);
+		if(identical(levels, "SIG"))
+		{
+			if(data$traits[[i]]$analysis$sma$include.env)
+			{
+#				p.table.m <- p.table[as.numeric(as.character(p.table[,2])) <= p.value, ];
+#				p.table.me <- p.table[as.numeric(as.character(p.table[,3])) <= p.value, ];
+#				p.table<- merge(p.table.m, p.table.me, by = "Marker", all = TRUE)[, 1:3];
+				p.table[ , "P.value(M)"] <- as.numeric(as.character(p.table[ , "P.value(M)"]));
+				p.table[ , "P.value(MxE)"] <- as.numeric(as.character(p.table[ , "P.value(MxE)"]));
+				p.table <- subset(p.table, p.table$"P.value(M)" <= p.value | p.table$"P.value(MxE)" <= p.value);
+				colnames(p.table) <- c("Marker", "P.value(M)", "P.value(MxE)");
+				marker.names <- as.character(p.table[,1]);
+				means.table <- means.table[which(as.character(means.table[,1]) %in% marker.names), ]; 
+				cat("Statistics test on each marker:\n");
+				print(as.data.frame(p.table), quote = FALSE,  row.names = FALSE);
+				cat("\n");
+				cat("Means of each marker across genotype:\n");
+				print(as.data.frame(means.table), quote = FALSE,  row.names = FALSE);
+			} else
+			{
+				#p.table <- p.table[as.numeric(as.character(p.table[,2])) <= p.value, ];
+				p.table[ , "P.value(M)"] <- as.numeric(as.character(p.table[ , "P.value(M)"]));
+				p.table <- subset(p.table, p.table$"P.value(M)" <= p.value);
+				marker.names <- as.character(p.table[,1]);
+				means.table <- means.table[which(as.character(means.table[,1]) %in% marker.names), ]; 
+				cat("Statistics test on each marker:\n");
+				print(as.data.frame(p.table), quote = FALSE,  row.names = FALSE);
+				cat("\n");
+				cat("Means of each marker across genotype:\n");
+				print(as.data.frame(means.table), quote = FALSE,  row.names = FALSE);
+			}
+		} else
+		{
+			cat("Statistics test on each marker:\n");
+			print(as.data.frame(p.table), quote = FALSE,  row.names = FALSE);
+			cat("\n");
+			cat("Means of each marker across genotype:\n");
+			print(as.data.frame(means.table), quote = FALSE,  row.names = FALSE);
+		}
+		cat(rep("-", 50), "\n", sep = "");
+		#cat("\n")
+	}
+}
 
 
 
