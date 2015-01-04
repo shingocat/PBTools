@@ -273,7 +273,171 @@ doMMA.SingleEnvAnalysis <- function(
 		...
 )
 {
+	method <- match.arg(method);
+	pval.method <- match.arg(pval.method);
+	family <- match.arg(family);
 	
+	if(!genotypicData$isRestricted)
+	{
+		warning("\tWarning: It will be used default parameters to conduct restricting genotypic data!\n");
+		genotypicData <- restrict.geno.data(genotypicData);
+	}
+	
+	#--- checking resp.var whether exists in the phenotypic data, ortherwise using all traits in the phenotypicData ---#
+	if(!missing(resp.var))
+	{
+		trait.names <- phenotypicData$trait.names;
+		temp.resp.var <- c();
+		for(i in 1:length(resp.var))
+		{
+			if(resp.var[i] %in% trait.names)
+			{
+				temp.resp.var <- c(temp.resp.var, resp.var[i]);
+			} else
+			{
+				warings(paste("\tWarnings: It will be omitted the ", resp.var[i], " because of it is not exist!\n", sep = ""));
+			}
+		}
+		if(length(temp.resp.var) == 0)
+			stop("\tError: All the specified resp.var are not exists in the phenotypicdata!\n");
+		resp.var <- temp.resp.var;
+	} else
+	{
+		resp.var <- phenotypicData$trait.names;
+	}
+	
+	genotypicData.restricted <- genotypicData$restricted$data;
+	marker.number <- ncol(genotypicData.restricted) - 1;
+	marker.names <- colnames(genotypicData.restricted)[-1];
+	
+	#--- suppress warning message---#
+	old.options <- options();
+	options(warn = 0);
+	library(hdlm);
+	
+	#--- reformat all genotypic data using dp.code instead of ht.code basing on include.ht ----#
+	#--- Because it will recode to default coding sytem, it could be define such code directly!---#
+	dp.code <- 2;
+	rp.code <- 0;
+	ht.code <- 1;
+	na.code <- NA;
+	if(include.ht)
+	{
+		genotypicData.restricted[ , -1][genotypicData.restricted[,-1] == ht.code] <- dp.code;
+	}
+	genotypicData.restricted <- apply(genotypicData.restricted, 2, factor);
+	
+	for(i in 1:length(resp.var))
+	{
+		#--- checking whether the resp.var name is the trait name of phenotypicData---#
+		for(j in 1:length(phenotypicData$traits))
+		{
+			if(!identical(resp.var[i], phenotypicData$traits[[j]]$name))
+				next;
+			if(is.null(phenotypicData$traits[[j]]$analysis$sea))
+				next;
+			#--- checking the analysis structure of phenotypicData ---#
+			if(is.null(phenotypicData$traits[[j]]$analysis))
+				phenotypicData$traits[[j]]$analysis <- list();
+			if(is.null(phenotypicData$traits[[j]]$analysis$mma))
+			{
+				phenotypicData$traits[[j]]$analysis$mma <- list();
+			} else
+			{
+				phenotypicData$traits[[j]]$analysis$mma <- NULL;
+				phenotypicData$traits[[j]]$analysis$mma <- list();
+			}
+			
+			trait.name <- resp.var[i];
+			#--- adding postfix on trait.name for single environment analysis---#
+			trait.name <- paste(trait.name, "_Mean", sep = "");
+			
+			phenotypicData$traits[[j]]$analysis$mma$method <- ifelse(is.null(method) | is.na(method), "NA", method);
+			phenotypicData$traits[[j]]$analysis$mma$siglevel <- ifelse(is.null(siglevel) | is.na(siglevel), "NA", siglevel);
+			phenotypicData$traits[[j]]$analysis$mma$bootstrap <- ifelse(is.null(bootstrap) | is.na(bootstrap), "NA", bootstrap);
+			phenotypicData$traits[[j]]$analysis$mma$pval.method <- ifelse(is.null(pval.method) | is.na(pval.method), "NA", pval.method);
+			phenotypicData$traits[[j]]$analysis$mma$family <- ifelse(is.null(family) | is.na(family), "NA", family);
+			phenotypicData$traits[[j]]$analysis$mma$include.ht <- ifelse(is.null(include.ht) | is.na(include.ht), "NA", include.ht);
+			phenotypicData$traits[[j]]$analysis$mma$nfolds <- ifelse(is.null(nfolds) | is.na(nfolds), "NA", nfolds);
+			phenotypicData$traits[[j]]$analysis$mma$step <- ifelse(is.null(step) | is.na(step), "NA", step);
+			phenotypicData$traits[[j]]$analysis$mma$max.try <- ifelse(is.null(max.try) | is.na(max.try), "NA", step);
+			phenotypicData$traits[[j]]$analysis$mma$envs <- list();
+			
+			#--- separated env on multi marker analysis ---#
+			for(k in 1:length(phenotypicData$traits[[j]]$analysis$sea$envs))
+			{
+				env.name <- phenotypicData$traits[[j]]$analysis$sea$envs[[k]]$name;
+				phenotypicData$traits[[j]]$analysis$mma$envs[[k]] <- list();
+				phenotypicData$traits[[j]]$analysis$mma$envs[[k]]$name <- env.name;
+				
+				geno.name.phenotypicData <- phenotypicData$traits[[j]]$envs[[k]]$design$geno;
+				geno.name.genotypicData <- genotypicData$geno.name;
+				
+				temp.phenotypicData <- phenotypicData$traits[[j]]$analysis$sea$envs[[k]]$sum.out;
+				
+				data <- merge(temp.phenotypicData, genotypicData.restricted, by.x = geno.name.phenotypicData, by.y = geno.name.genotypicData);
+				data[,trait.name] <- as.numeric(as.character(data[,trait.name]));
+				#--- remove missing value on trait and corresponding records on genotypic data ---#
+				na.index <- which(is.na(data[,trait.name]));
+				no.ind <- nrow(data);
+				if(length(na.index) > 0)
+					data <- data[-na.indx,];
+				trait.value <- data[,trait.name];
+				trait.value <- as.numeric(as.character(data[,trait.name]));
+				genetic.value <- data[,marker.names];
+				genetic.value <- apply(genetic.value, 2, trimStrings);
+				genetic.value <- apply(genetic.value, 2, as.character);
+				genetic.value <- apply(genetic.value, 2, as.numeric);
+				
+				if(method == "LASSO")
+				{
+					#---Try ten times whether hdlm could fit the model, if not, show error message!---#
+					n <- 0;
+					while(n <= max.try)
+					{
+						out <- try(hdglm(trait.value ~ genetic.value, M = no.ind, bootstrap = bootstrap, pval.method = pval.method, alpha = 1, siglevel = siglevel, family = family), silent = TRUE);
+						if(!identical(class(out),"try-error"))
+							break;
+						n <- n + 1;
+					}
+				} else if(method == "RIDGE_REGRESSION")
+				{ 
+					#---Try ten times whether hdlm could fit the model, if not, show error message!---#
+					n <- 0;
+					while(n <= max.try)
+					{
+						out <- try(hdglm(trait.value ~ genetic.value, M = no.ind, bootstrap = bootstrap, pval.method = pval.method, alpha = 0.000001, siglevel = siglevel, family = family), silent = TRUE);
+						if(!identical(class(out), "try-error"))
+							break;
+						n <- n + 1;
+					}
+				} else if(method == "ELASTIC_NET")
+				{
+					elastic.net.value <- getElasticNetAlpha(genetic.value, trait.value, nfolds = nfolds, step = step);
+					
+					#---Try ten times whether hdlm could fit the model, if not, show error message!---#
+					n <- 0;
+					while(n <= max.try)
+					{
+						out <- try(hdglm(trait.value ~ genetic.value, M = no.ind, bootstrap = bootstrap, pval.method = pval.method, alpha = elastic.net.value, siglevel = siglevel, family = family), silent = TRUE);
+						if(!identical(class(out), "try-error"))
+							break;
+						n <- n + 1;
+					}
+				} #--- end stmt of if(method == "LASSO") ---#
+				
+				phenotypicData$traits[[j]]$analysis$mma$envs[[k]]$outcomes <- out;
+				
+			}#--- end stmt of for(k in 1:length(phenotypicData$traits[[j]]$envs)) ---#
+			
+		}#--- end stmt of for(i in 1:length(phenotpyicData$traits)) ---#
+	} #--- end stmt of for(i in 1:length(resp.var)) ---#
+	
+	phenotypicData$genotypicData <- genotypicData;
+	options(old.options);
+	detach("package:hdlm", unload = TRUE);
+	class(phenotypicData) <- c("MultiMarkerAnalysis", class(phenotypicData));
+	return(phenotypicData);
 }
 
 #--- the s3 method for MultiEnvAnalysis object ---#
@@ -294,7 +458,183 @@ doMMA.MultiEnvAnalysis <- function(
 		...
 )
 {
+	method <- match.arg(method);
+	pval.method <- match.arg(pval.method);
+	family <- match.arg(family);
 	
+	if(!genotypicData$isRestricted)
+	{
+		warning("\tWarning: It will be used default parameters to conduct restricting genotypic data!\n");
+		genotypicData <- restrict.geno.data(genotypicData);
+	}
+	
+	#--- checking resp.var whether exists in the phenotypic data, ortherwise using all traits in the phenotypicData ---#
+	if(!missing(resp.var))
+	{
+		trait.names <- phenotypicData$trait.names;
+		temp.resp.var <- c();
+		for(i in 1:length(resp.var))
+		{
+			if(resp.var[i] %in% trait.names)
+			{
+				temp.resp.var <- c(temp.resp.var, resp.var[i]);
+			} else
+			{
+				warings(paste("\tWarnings: It will be omitted the ", resp.var[i], " because of it is not exist!\n", sep = ""));
+			}
+		}
+		if(length(temp.resp.var) == 0)
+			stop("\tError: All the specified resp.var are not exists in the phenotypicdata!\n");
+		resp.var <- temp.resp.var;
+	} else
+	{
+		resp.var <- phenotypicData$trait.names;
+	}
+	
+	genotypicData.restricted <- genotypicData$restricted$data;
+	marker.number <- ncol(genotypicData.restricted) - 1;
+	marker.names <- colnames(genotypicData.restricted)[-1];
+	
+	#--- suppress warning message---#
+	old.options <- options();
+	options(warn = 0);
+	library(hdlm);
+	
+	#--- reformat all genotypic data using dp.code instead of ht.code basing on include.ht ----#
+	#--- Because it will recode to default coding sytem, it could be define such code directly!---#
+	dp.code <- 2;
+	rp.code <- 0;
+	ht.code <- 1;
+	na.code <- NA;
+	if(include.ht)
+	{
+		genotypicData.restricted[ , -1][genotypicData.restricted[,-1] == ht.code] <- dp.code;
+	}
+	genotypicData.restricted <- apply(genotypicData.restricted, 2, factor);
+	
+	for(i in 1:length(resp.var))
+	{
+		#--- checking whether the resp.var name is the trait name of phenotypicData---#
+		for(j in 1:length(phenotypicData$traits))
+		{
+			if(!identical(resp.var[i], phenotypicData$traits[[j]]$name))
+				next;
+			trait.name <- resp.var[i];
+			#--- check whether this trait is conducted multi environment analysis---#
+			if(is.null(phenotypicData$traits[[j]]$analysis$mea))
+			{
+				warning("\tWarning: This trait", trait.name, "does not conduct multi environment analysis! It will be omitted!\n");
+				next;
+			}
+			#--- checking the analysis structure of phenotypicData ---#
+			if(is.null(phenotypicData$traits[[j]]$analysis))
+				phenotypicData$traits[[j]]$analysis <- list();
+			if(is.null(phenotypicData$traits[[j]]$analysis$mma))
+			{
+				phenotypicData$traits[[j]]$analysis$mma <- list();
+			} else
+			{
+				phenotypicData$traits[[j]]$analysis$mma <- NULL;
+				phenotypicData$traits[[j]]$analysis$mma <- list();
+			}
+			
+			#--- adding postfix on trait.name for Multiple environment analysis---#
+			trait.name <- paste(trait.name, "_LSMean", sep = "");
+			
+			phenotypicData$traits[[j]]$analysis$mma$method <- ifelse(is.null(method) | is.na(method), "NA", method);
+			phenotypicData$traits[[j]]$analysis$mma$siglevel <- ifelse(is.null(siglevel) | is.na(siglevel), "NA", siglevel);
+			phenotypicData$traits[[j]]$analysis$mma$bootstrap <- ifelse(is.null(bootstrap) | is.na(bootstrap), "NA", bootstrap);
+			phenotypicData$traits[[j]]$analysis$mma$pval.method <- ifelse(is.null(pval.method) | is.na(pval.method), "NA", pval.method);
+			phenotypicData$traits[[j]]$analysis$mma$family <- ifelse(is.null(family) | is.na(family), "NA", family);
+			phenotypicData$traits[[j]]$analysis$mma$include.ht <- ifelse(is.null(include.ht) | is.na(include.ht), "NA", include.ht);
+			phenotypicData$traits[[j]]$analysis$mma$nfolds <- ifelse(is.null(nfolds) | is.na(nfolds), "NA", nfolds);
+			phenotypicData$traits[[j]]$analysis$mma$step <- ifelse(is.null(step) | is.na(step), "NA", step);
+			phenotypicData$traits[[j]]$analysis$mma$max.try <- ifelse(is.null(max.try) | is.na(max.try), "NA", step);
+			phenotypicData$traits[[j]]$analysis$mma$envs <- list();
+			
+			#--- get multi environment analysis's environmental levels---#
+			env <- phenotypicData$traits[[j]]$envs[[1]]$design$env;
+			data.total <- phenotypicData$traits[[j]]$analysis$mea$means.GenoEnv;
+			data.total[,env] <- as.factor(data.total[,env]);
+			env.nlevels <- nlevels(data.total[,env]);
+			env.names <- as.character(levels(data.total[,env]));
+			data.total[,env] <- as.character(data.total[,env]);
+			
+			#--- separated env on multi marker analysis ---#
+			for(k in 1:env.nlevels)
+			{
+				env.name <- env.names[k];
+				phenotypicData$traits[[j]]$analysis$mma$envs[[k]] <- list();
+				phenotypicData$traits[[j]]$analysis$mma$envs[[k]]$name <- env.name;
+				
+				geno.name.phenotypicData <- phenotypicData$traits[[j]]$envs[[1]]$design$geno;
+				geno.name.genotypicData <- genotypicData$geno.name;
+				
+				temp.phenotypicData <- subset(data.total, subset = (data.total[,env] == env.name));
+				
+				data <- merge(temp.phenotypicData, genotypicData.restricted, by.x = geno.name.phenotypicData, by.y = geno.name.genotypicData);
+				data[,trait.name] <- as.numeric(as.character(data[,trait.name]));
+				#--- remove missing value on trait and corresponding records on genotypic data ---#
+				na.index <- which(is.na(data[,trait.name]));
+				no.ind <- nrow(data);
+				if(length(na.index) > 0)
+					data <- data[-na.indx,];
+				trait.value <- data[,trait.name];
+				trait.value <- as.numeric(as.character(data[,trait.name]));
+				genetic.value <- data[,marker.names];
+				genetic.value <- apply(genetic.value, 2, trimStrings);
+				genetic.value <- apply(genetic.value, 2, as.character);
+				genetic.value <- apply(genetic.value, 2, as.numeric);
+				
+				if(method == "LASSO")
+				{
+					#---Try ten times whether hdlm could fit the model, if not, show error message!---#
+					n <- 0;
+					while(n <= max.try)
+					{
+						out <- try(hdglm(trait.value ~ genetic.value, M = no.ind, bootstrap = bootstrap, pval.method = pval.method, alpha = 1, siglevel = siglevel, family = family), silent = TRUE);
+						if(!identical(class(out),"try-error"))
+							break;
+						n <- n + 1;
+					}
+				} else if(method == "RIDGE_REGRESSION")
+				{ 
+					#---Try ten times whether hdlm could fit the model, if not, show error message!---#
+					n <- 0;
+					while(n <= max.try)
+					{
+						out <- try(hdglm(trait.value ~ genetic.value, M = no.ind, bootstrap = bootstrap, pval.method = pval.method, alpha = 0.000001, siglevel = siglevel, family = family), silent = TRUE);
+						if(!identical(class(out), "try-error"))
+							break;
+						n <- n + 1;
+					}
+				} else if(method == "ELASTIC_NET")
+				{
+					elastic.net.value <- getElasticNetAlpha(genetic.value, trait.value, nfolds = nfolds, step = step);
+					
+					#---Try ten times whether hdlm could fit the model, if not, show error message!---#
+					n <- 0;
+					while(n <= max.try)
+					{
+						out <- try(hdglm(trait.value ~ genetic.value, M = no.ind, bootstrap = bootstrap, pval.method = pval.method, alpha = elastic.net.value, siglevel = siglevel, family = family), silent = TRUE);
+						if(!identical(class(out), "try-error"))
+							break;
+						n <- n + 1;
+					}
+				} #--- end stmt of if(method == "LASSO") ---#
+				
+				phenotypicData$traits[[j]]$analysis$mma$envs[[k]]$outcomes <- out;
+				
+			}#--- end stmt of for(k in 1:length(phenotypicData$traits[[j]]$envs)) ---#
+			
+		}#--- end stmt of for(i in 1:length(phenotpyicData$traits)) ---#
+	} #--- end stmt of for(i in 1:length(resp.var)) ---#
+	
+	phenotypicData$genotypicData <- genotypicData;
+	options(old.options);
+	detach("package:hdlm", unload = TRUE);
+	class(phenotypicData) <- c("MultiMarkerAnalysis", class(phenotypicData));
+	return(phenotypicData);
 }
 
 getElasticNetAlpha <- function

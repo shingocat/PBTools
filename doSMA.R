@@ -984,7 +984,7 @@ doSMA.MultiEnvAnalysis <- function(
 					for(k in 1:nlevels.env)
 					{
 						env.name <- names.env[k];
-						geno.name.phenotypicData <- phenotypicData$traits[[j]]$envs[[k]]$design$geno;
+						geno.name.phenotypicData <- phenotypicData$traits[[j]]$envs[[1]]$design$geno;
 						geno.name.genotypicData <- genotypicData$geno.name;
 						temp.data <- subset(data.total, subset = (data.total[,env] == env.name));
 						data <- merge(temp.data, genotypicData.restricted, by.x = geno.name.phenotypicData, by.y = geno.name.genotypicData);
