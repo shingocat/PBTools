@@ -105,8 +105,11 @@ inner.read.map.data <- function
 	max.length.by.chr <- aggregate(source[,pos], by = list(source[,chr]), FUN = function(x){x <- as.numeric(as.character(x));return(max(x))});
 	colnames(max.length.by.chr) <- c(chr,"Length");
 	summary.out <- merge(max.length.by.chr, marker.number.by.chr, by = chr, all = TRUE);
-	
+	colnames(summary.out) <- c("Chr.", "Length", "Markers");
 	outcomes <- list();
+	outcomes$marker.label <- marker;
+	outcomes$chr.label <- chr;
+	outcomes$pos.label <- pos;
 	outcomes$units <- units;
 	outcomes$marker.number <- marker.number;
 	outcomes$chr.number <- chr.number;

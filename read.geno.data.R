@@ -26,6 +26,7 @@ read.geno.data <- function(
 		Fn = 2,
 		replace.illegal.code = TRUE,
 #		doRestrict = TRUE
+		sep,
 		...
 )
 {
@@ -112,6 +113,7 @@ read.geno.data.character <- function(
 		Fn = 2,
 		replace.illegal.code = TRUE,
 #		doRestrict = TRUE
+		sep,
 		...
 )
 {
@@ -124,7 +126,13 @@ read.geno.data.character <- function(
 #	}
 #	
 	# read the file 
-	data <- try(read.csv(file = source, header = T, na.strings=na.code), silent = FALSE);
+	if(missing(sep))
+	{	
+		data <- try(read.csv(file = source, header = T, na.strings=na.code), silent = FALSE);
+	} else
+	{
+		data <- try(read.table(file = source, header = T, na.strings=na.code, sep = sep), silent = FALSE);
+	}
 	if(identical(class(data), "try-error"))
 	{
 		stop("\tError: There are some problems on in the file!\n");
