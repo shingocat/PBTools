@@ -337,6 +337,14 @@ print.SingleEnvAnalysis <- function
           cat("\n\n");
           cat("Testing for the Significance of Genotypic Effect: \n");
           cat("\n");
+          print(data$traits[[i]]$analysis$sea$envs[[j]]$m2Vm1, row.names = FALSE);
+          cat("\n")
+          print(data$traits[[i]]$analysis$sea$envs[[j]]$geno.test,row.names = FALSE);
+          cat("\n");
+          cat("Genotoype LSMean and Standard Errors:\n");
+          cat("\n");
+          print(data$traits[[i]]$analysis$sea$envs[[j]]$summary.statistic, row.names = FALSE);
+          cat("\n");
           
           
         } # end stmt of for(j in 1:1:length(data$traits[[i]]$analysis$sea$envs))
