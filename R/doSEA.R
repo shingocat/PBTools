@@ -300,35 +300,35 @@ print.SingleEnvAnalysis <- function
           if(data$traits[[i]]$envs[[j]]$design$exptl.design == "RCB" ||
               data$traits[[i]]$envs[[j]]$design$exptl.design == "AugRCB")
           {
-            cat(" ", data$traits[[i]]$envs[[j]]$design$geno, "\t", length(data$traits[[i]]$envs[[j]]$design$geno)),"\t", data$traits[[i]]$envs[[j]]$design$geno.levels,"\n",sep="");
-            cat(" ", data$traits[[i]]$envs[[j]]$design$block, "\t", length(data$traits[[i]]$envs[[j]]$design$block)),"\t", data$traits[[i]]$envs[[j]]$design$block.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$geno, "\t", length(data$traits[[i]]$envs[[j]]$design$geno),"\t", data$traits[[i]]$envs[[j]]$design$geno.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$block, "\t", length(data$traits[[i]]$envs[[j]]$design$block),"\t", data$traits[[i]]$envs[[j]]$design$block.levels,"\n",sep="");
           } else if(data$traits[[i]]$envs[[j]]$design$exptl.design == "AugLS")
           {
-            cat(" ", data$traits[[i]]$envs[[j]]$design$geno, "\t", length(data$traits[[i]]$envs[[j]]$design$geno)),"\t", data$traits[[i]]$envs[[j]]$design$geno.levels,"\n",sep="");
-            cat(" ", data$traits[[i]]$envs[[j]]$design$row, "\t", length(data$traits[[i]]$envs[[j]]$design$row)),"\t", data$traits[[i]]$envs[[j]]$design$row.levels,"\n",sep="");
-            cat(" ", data$traits[[i]]$envs[[j]]$design$column, "\t", length(data$traits[[i]]$envs[[j]]$design$column)),"\t", data$traits[[i]]$envs[[j]]$design$column.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$geno, "\t", length(data$traits[[i]]$envs[[j]]$design$geno),"\t", data$traits[[i]]$envs[[j]]$design$geno.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$row, "\t", length(data$traits[[i]]$envs[[j]]$design$row),"\t", data$traits[[i]]$envs[[j]]$design$row.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$column, "\t", length(data$traits[[i]]$envs[[j]]$design$column),"\t", data$traits[[i]]$envs[[j]]$design$column.levels,"\n",sep="");
           } else if(data$traits[[i]]$envs[[j]]$design$exptl.design == "Alpha")
           {
-            cat(" ", data$traits[[i]]$envs[[j]]$design$geno, "\t", length(data$traits[[i]]$envs[[j]]$design$geno)),"\t", data$traits[[i]]$envs[[j]]$design$geno.levels,"\n",sep="");
-            cat(" ", data$traits[[i]]$envs[[j]]$design$block, "\t", length(data$traits[[i]]$envs[[j]]$design$block)),"\t", data$traits[[i]]$envs[[j]]$design$block.levels,"\n",sep="");
-            cat(" ", data$traits[[i]]$envs[[j]]$design$rep, "\t", length(data$traits[[i]]$envs[[j]]$design$rep)),"\t", data$traits[[i]]$envs[[j]]$design$rep.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$geno, "\t", length(data$traits[[i]]$envs[[j]]$design$geno),"\t", data$traits[[i]]$envs[[j]]$design$geno.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$block, "\t", length(data$traits[[i]]$envs[[j]]$design$block),"\t", data$traits[[i]]$envs[[j]]$design$block.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$rep, "\t", length(data$traits[[i]]$envs[[j]]$design$rep),"\t", data$traits[[i]]$envs[[j]]$design$rep.levels,"\n",sep="");
           } else if(data$traits[[i]]$envs[[j]]$design$exptl.design == "RowCol")
           {
-            cat(" ", data$traits[[i]]$envs[[j]]$design$geno, "\t", length(data$traits[[i]]$envs[[j]]$design$geno)),"\t", data$traits[[i]]$envs[[j]]$design$geno.levels,"\n",sep="");
-            cat(" ", data$traits[[i]]$envs[[j]]$design$row, "\t", length(data$traits[[i]]$envs[[j]]$design$row)),"\t", data$traits[[i]]$envs[[j]]$design$row.levels,"\n",sep="");
-            cat(" ", data$traits[[i]]$envs[[j]]$design$column, "\t", length(data$traits[[i]]$envs[[j]]$design$column)),"\t", data$traits[[i]]$envs[[j]]$design$column.levels,"\n",sep="");
-            cat(" ", data$traits[[i]]$envs[[j]]$design$rep, "\t", length(data$traits[[i]]$envs[[j]]$design$rep)),"\t", data$traits[[i]]$envs[[j]]$design$rep.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$geno, "\t", length(data$traits[[i]]$envs[[j]]$design$geno),"\t", data$traits[[i]]$envs[[j]]$design$geno.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$row, "\t", length(data$traits[[i]]$envs[[j]]$design$row),"\t", data$traits[[i]]$envs[[j]]$design$row.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$column, "\t", length(data$traits[[i]]$envs[[j]]$design$column),"\t", data$traits[[i]]$envs[[j]]$design$column.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$rep, "\t", length(data$traits[[i]]$envs[[j]]$design$rep),"\t", data$traits[[i]]$envs[[j]]$design$rep.levels,"\n",sep="");
           } else if(data$traits[[i]]$envs[[j]]$design$exptl.design == "LatinAlpha")
           {
-            cat(" ", data$traits[[i]]$envs[[j]]$design$geno, "\t", length(data$traits[[i]]$envs[[j]]$design$geno)),"\t", data$traits[[i]]$envs[[j]]$design$geno.levels,"\n",sep="");
-            cat(" ", data$traits[[i]]$envs[[j]]$design$block, "\t", length(data$traits[[i]]$envs[[j]]$design$block)),"\t", data$traits[[i]]$envs[[j]]$design$block.levels,"\n",sep="");
-            cat(" ", data$traits[[i]]$envs[[j]]$design$rep, "\t", length(data$traits[[i]]$envs[[j]]$design$rep)),"\t", data$traits[[i]]$envs[[j]]$design$rep.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$geno, "\t", length(data$traits[[i]]$envs[[j]]$design$geno),"\t", data$traits[[i]]$envs[[j]]$design$geno.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$block, "\t", length(data$traits[[i]]$envs[[j]]$design$block),"\t", data$traits[[i]]$envs[[j]]$design$block.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$rep, "\t", length(data$traits[[i]]$envs[[j]]$design$rep),"\t", data$traits[[i]]$envs[[j]]$design$rep.levels,"\n",sep="");
           } else if(data$traits[[i]]$envs[[j]]$design$exptl.design == "LatinRowCol")
           {
-            cat(" ", data$traits[[i]]$envs[[j]]$design$geno, "\t", length(data$traits[[i]]$envs[[j]]$design$geno)),"\t", data$traits[[i]]$envs[[j]]$design$geno.levels,"\n",sep="");
-            cat(" ", data$traits[[i]]$envs[[j]]$design$row, "\t", length(data$traits[[i]]$envs[[j]]$design$row)),"\t", data$traits[[i]]$envs[[j]]$design$row.levels,"\n",sep="");
-            cat(" ", data$traits[[i]]$envs[[j]]$design$column, "\t", length(data$traits[[i]]$envs[[j]]$design$column)),"\t", data$traits[[i]]$envs[[j]]$design$column.levels,"\n",sep="");
-            cat(" ", data$traits[[i]]$envs[[j]]$design$rep, "\t", length(data$traits[[i]]$envs[[j]]$design$rep)),"\t", data$traits[[i]]$envs[[j]]$design$rep.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$geno, "\t", length(data$traits[[i]]$envs[[j]]$design$geno),"\t", data$traits[[i]]$envs[[j]]$design$geno.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$row, "\t", length(data$traits[[i]]$envs[[j]]$design$row),"\t", data$traits[[i]]$envs[[j]]$design$row.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$column, "\t", length(data$traits[[i]]$envs[[j]]$design$column),"\t", data$traits[[i]]$envs[[j]]$design$column.levels,"\n",sep="");
+            cat(" ", data$traits[[i]]$envs[[j]]$design$rep, "\t", length(data$traits[[i]]$envs[[j]]$design$rep),"\t", data$traits[[i]]$envs[[j]]$design$rep.levels,"\n",sep="");
           }
           cat("\n");
           cat("Variance Components Table: \n");
