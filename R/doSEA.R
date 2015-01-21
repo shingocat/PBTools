@@ -283,7 +283,7 @@ print.SingleEnvAnalysis <- function
         cat(rep("=",times=40), sep="");
         cat("\n");
         cat("\n");
-        for(j in 1:1:length(data$traits[[i]]$analysis$sea$envs))
+        for(j in 1:length(data$traits[[i]]$analysis$sea$envs))
         {
           env.name <- data$traits[[i]]$analysis$sea$envs[[j]]$name;
           cat(rep("-",times=40), sep="");
@@ -538,7 +538,20 @@ print.SingleEnvAnalysis <- function
         cat("Standard Error of The Difference (SED):\n");
         print(data$traits[[i]]$analysis$sea$envs[[j]]$sedTable, row.names = FALSE);
         cat("\n");
-        
+        #--- contrast outcomes---#
+        if(!is.null(data$traits[[i]]$analysis$sea$envs[[j]]$contrast))
+        {
+          cat(rep("-", times = 40), sep = "");
+          cat("\n");
+          cat("Contrast Analysis\n")
+          cat(rep("-", times = 40), sep = "");
+          cat("\n");
+          if(nrow(data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome) == 0)
+            cat("There are no significant contrasts!\n")
+          else
+            print(data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome, row.names = FALSE);
+          cat("\n");
+        }
       } # end stmt of for(j in 1:1:length(data$traits[[i]]$analysis$sea$envs))
     }# end stmt of if(is.null(data$traits[[i]]$analysis$sea))
   }# end stmt of for(i in 1:data$trait.number)

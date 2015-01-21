@@ -47,8 +47,8 @@ graph.hist.SingleEnvAnalysis <- function
           {
             png(histfile);
             xlabel = trait.name;
-            hist(as.numeric(data$traits[[i]]$envs[[j]]$data[,trait.name]), xlab = xlabel, 
-                    main = paste("Histogram of ", trait.name, sep=""));
+            hist(as.numeric(as.character(data$traits[[i]]$envs[[j]]$data[,trait.name])),
+                 xlab = xlabel, main = paste("Histogram of ", trait.name, sep=""));
             dev.off();
           }
         }
@@ -60,7 +60,7 @@ graph.hist.SingleEnvAnalysis <- function
         {
           png(histfile);
           xlabel = trait.name;
-          hist(as.numeric(data$raw.data[,trait.name]), 
+          hist(as.numeric(as.character(data$raw.data[,trait.name])), 
                  xlab = xlabel, main = paste("Histogram of ", trait.name, sep=""));
           dev.off();
         }

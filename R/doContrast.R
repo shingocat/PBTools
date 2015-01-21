@@ -29,7 +29,7 @@ doContrast.SingleEnvAnalysis <- function(
 		alpha = 0.05
 )
 {
-	if(!inherits(data, "SingleSiteAnalysis"))
+	if(!inherits(data, "SingleEnvAnalysis"))
 		stop("\tError: The data should be of class SingleSiteAnalysis!\n");
 	contrastOpt <- match.arg(contrastOpt);
 	if(contrastOpt == "RecurrentParent")
@@ -42,7 +42,7 @@ doContrast.SingleEnvAnalysis <- function(
 		respvar.number <- length(data$traits);
 		for (i in (1 : respvar.number))
 		{	
-			site.number <- length(data$triats[[i]]$analysis$ssa$sites);
+			site.number <- length(data$traits[[i]]$analysis$sea$envs);
 			trait.name <- data$traits[[i]]$name;
 			
 			if(acrossEnv)
@@ -60,17 +60,17 @@ doContrast.SingleEnvAnalysis <- function(
 			}
 			for( j in (1 : site.number))
 			{
-				env.name <- data$traits[[i]]$analysis$ssa$sites[[j]]$name;
+				env.name <- data$traits[[i]]$analysis$sea$envs[[j]]$name;
 				# -- this coditions showed warning messages only not stop any more.---#
-				if(data$traits[[i]]$sites[[j]]$restricted$isTRUE) 
+				if(data$traits[[i]]$envs[[j]]$restricted$isTRUE) 
 				{
-					warning(paste("\tWarning, the missing rate is larger than specified missing rate,", data$traits[[i]]$sites$restricted$missingRate,
+					warning(paste("\tWarning, the missing rate is larger than specified missing rate,", data$traits[[i]]$envs$restricted$missingRate,
 									" of ", trait.name, " on ", env.name, 
 									".\n\tCannot proceed with contrast analysis!\n" , sep = "" ));
 					next;
 				}
 				# -- this conditions showed warning messages only not stop any more ---#
-				if(data$traits[[i]]$analysis$ssa$sites[[j]]$lmerRun == "ERROR") 
+				if(!inherits(data$traits[[i]]$analysis$sea$envs[[j]]$model, "lmerMod")) 
 				{
 					warning(paste("\tWarning, there are some errors of lmer occured on ", 
 									env.name, " of ", trait.name, 
@@ -78,9 +78,9 @@ doContrast.SingleEnvAnalysis <- function(
 					next;
 				}
 				
-				model <- data$traits[[i]]$analysis$ssa$sites[[j]]$model;
+				model <- data$traits[[i]]$analysis$sea$envs[[j]]$model;
 				trmtLevels <- levels(model@frame[,2]);
-				# -- checking whether all sites have the same recurrent parent. this conditions is should be stop.---#
+				# -- checking whether all envs have the same recurrent parent. this conditions is should be stop.---#
 				if(!(recurrentParent %in% trmtLevels))
 				{
 					stop(paste("\tError, there are no specified recurrent parent tested on ", 
@@ -96,46 +96,46 @@ doContrast.SingleEnvAnalysis <- function(
 		for(i in 1:respvar.number)
 		{
 			trait.name <- data$traits[[i]]$name;
-			#--- define each respone variable contrast outcome structure under analysis$ssa$sites[[j]]$contrast---#
-			site.number <- length(data$traits[[i]]$analysis$ssa$sites)
+			#--- define each respone variable contrast outcome structure under analysis$sea$envs[[j]]$contrast---#
+			site.number <- length(data$traits[[i]]$analysis$sea$envs)
 			for( j in 1:site.number){
-				env.name <- data$traits[[i]]$analysis$ssa$sites[[j]]$name;
-				data$traits[[i]]$analysis$ssa$sites[[j]]$contrast <- list();
-				#---This condition showed warning messages instead of stop the program---#
-				if(data$traits[[i]]$sites[[j]]$restricted$isTRUE)
+				env.name <- data$traits[[i]]$analysis$sea$envs[[j]]$name;
+				data$traits[[i]]$analysis$sea$envs[[j]]$contrast <- list();
+				#---This condition showed warning meseages instead of stop the program---#
+				if(data$traits[[i]]$envs[[j]]$restricted$isTRUE)
 				{
-					#data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$model <- NA;
-					data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$messange <-  paste("\tWarning, the missing rate is larger than specified missing rate on ", 
+					#data$traits[[i]]$analysis$sea$envs[[j]]$contrast$model <- NA;
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$messange <-  paste("\tWarning, the missing rate is larger than specified missing rate on ", 
 							env.name, " of ", trait.name, 
 							". Cannot proceed with contrast analysis!\n" , sep = "" );
-					data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$error <- TRUE;
-					data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$outcome <- NA;
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$error <- TRUE;
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome <- NA;
 					next;
 				}
 				#---This condition showed warning messages instead of stop the program---#
-				if(data$traits[[i]]$analysis$ssa$sites[[j]]$lmerRun == "ERROR")
+				if(!inherits(data$traits[[i]]$analysis$sea$envs[[j]]$model, "lmerMod"))
 				{
-					#data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$model <- NA;
-					data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$messages <- paste("\tWarning, there are some errors of lmer occured on ", 
+					#data$traits[[i]]$analysis$sea$envs[[j]]$contrast$model <- NA;
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$messages <- paste("\tWarning, there are some errors of lmer occured on ", 
 							env.name, " of ", trait.name, 
 							". Cannot proceed with contrast analysis!\n" , sep = "" );
-					data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$error <- TRUE;
-					data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$outcome <- NA;
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$error <- TRUE;
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome <- NA;
 					next;
 				}
 				
-				model <- data$traits[[i]]$analysis$ssa$sites[[j]]$model;
+				model <- data$traits[[i]]$analysis$sea$envs[[j]]$model;
 				trmtLevels <- levels(model@frame[,2]);
-				data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$messages <- paste("There are nothing wrong on this ", 
+				data$traits[[i]]$analysis$sea$envs[[j]]$contrast$messages <- paste("There are nothing wrong on this ", 
 						env.name, " on ", trait.name, ".\n", sep = "");
-				data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$error <- FALSE;
+				data$traits[[i]]$analysis$sea$envs[[j]]$contrast$error <- FALSE;
 				temp <- compareControlContrast(model, control = recurrentParent, alpha);
-				signif <- temp[temp[,"Lower"] <= 0 & temp[ ,"Upper"] >= 0];
-				if(nrow(signif != 0))
-				{
-					rownames(signif) <- 1:nrow(signif);
-				}
-				data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$outcome <- signif;
+# 				signif <- temp[temp[,"Lower"] <= 0 & temp[ ,"Upper"] >= 0];
+# 				if(nrow(signif != 0))
+# 				{
+# 					rownames(signif) <- 1:nrow(signif);
+# 				}
+				data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome <- temp;
 			}
 		}
 		detach("package:multcomp");
@@ -154,7 +154,7 @@ doContrast.SingleEnvAnalysis <- function(
 		#--- checking whether the genoContrast length is the same as fthe number of environment.---#
 		for(i in 1:respvar.number)
 		{
-			site.number <- length(data$traits[[i]]$analysis$ssa$sites);
+			site.number <- length(data$traits[[i]]$analysis$sea$envs);
 			trait.name <- data$traits[[i]]$name;
 			if(acrossEnv)
 			{
@@ -165,9 +165,9 @@ doContrast.SingleEnvAnalysis <- function(
 				contrastLevels <- colnames(genoContrast[[1]]);
 				for(j in 1:site.number)
 				{
-					env.name <- data$traits[[i]]$analysis$ssa$sites[[j]]$name;
+					env.name <- data$traits[[i]]$analysis$sea$envs[[j]]$name;
 					#--- This conditions showed warning messages not stop excution---#
-					if(data$traits[[i]]$analysis$ssa$sites[[j]]$restricted$isTRUE)
+					if(data$traits[[i]]$analysis$sea$envs[[j]]$restricted$isTRUE)
 					{
 						checkOutcomes <- c(checkOutcomes, F);
 						errorMessages <- c(errorMessages, paste("\tError, there are missing rate larger than specified one on ", 
@@ -179,7 +179,7 @@ doContrast.SingleEnvAnalysis <- function(
 						next;
 					}
 					# -- This conditions showed warning messages not stop excution
-					if(data$traits[[i]]$analysis$ssa$sites[[j]]$lmerRun == "ERROR")
+					if(data$traits[[i]]$analysis$sea$envs[[j]]$lmerRun == "ERROR")
 					{
 						checkOutcomes <- c(checkOutcomes, F);
 						errorMessages <- c(errorMessages, paste("\tError, there are some errors occured on ", 
@@ -191,7 +191,7 @@ doContrast.SingleEnvAnalysis <- function(
 						next;
 					}
 					
-					model <- data$traits[[i]]$analysis$ssa$sites[[j]]$model;
+					model <- data$traits[[i]]$analysis$sea$envs[[j]]$model;
 					trmtLevels <- levels(model@frame[ , 2]);
 					#--- This conditions stop excution---#
 					if(length(contrastLevels) != length(trmtLevels))
@@ -222,15 +222,15 @@ doContrast.SingleEnvAnalysis <- function(
 			{
 				if(genoContrastLength != site.number)
 				{
-					stop(paste("\tError: The length of genoContrast argument should be as the same number of sites on ",
+					stop(paste("\tError: The length of genoContrast argument should be as the same number of envs on ",
 									trait.name, ". \n", sep =""));
 				}
 				
 				for( j in 1:site.number)
 				{
-					env.name <- data$traits[[i]]$analysis$ssa$sites[[j]]$name;
+					env.name <- data$traits[[i]]$analysis$sea$envs[[j]]$name;
 					#--- This conditions showed warning messages not stop excution---#
-					if(data$traits[[i]]$sites[[j]]$restricted$isTRUE)
+					if(data$traits[[i]]$envs[[j]]$restricted$isTRUE)
 					{
 						checkOutcomes <- c(checkOutcomes, F);
 						errorMessages <- c(errorMessages, paste("\tWarning, there are missing value larger than specified one on ", 
@@ -242,7 +242,7 @@ doContrast.SingleEnvAnalysis <- function(
 						next;
 					}
 					#--- This conditions showed warning messages not stop excution---#
-					if(data$triats[[i]]$analysis$ssa$sites[[j]]$lmerRun == "ERROR") 
+					if(data$triats[[i]]$analysis$sea$envs[[j]]$lmerRun == "ERROR") 
 					{
 						checkOutcomes <- c(checkOutcomes, F);
 						errorMessages <- c(errorMessages, paste("\tWarning, there are some errors occured on ", 
@@ -254,7 +254,7 @@ doContrast.SingleEnvAnalysis <- function(
 						next;
 					}
 					
-					model <- data$traits[[i]]$analysis$ssa$sites[[j]]$model;
+					model <- data$traits[[i]]$analysis$sea$envs[[j]]$model;
 					trmtLevels <- levels(mdoel@frame[,2]);
 					contrastLevels <- colnames(genoContrast[[j]]);
 					if(length(contrastLevels) != length(trmtLevels))
@@ -288,82 +288,82 @@ doContrast.SingleEnvAnalysis <- function(
 		for(i in 1:respvar.number)
 		{
 			trait.name <- data$traits[[i]]$name;
-			site.number <- length(data$traits[[i]]$analysis$ssa$sites);
+			site.number <- length(data$traits[[i]]$analysis$sea$envs);
 			for(j in 1:site.number)
 			{
-				data$traits[[i]]$analysis$ssa$sites[[j]]$contrast <- list();
-				env.name <- data$traits[[i]]$analysis$ssa$sites[[j]]$name;
+				data$traits[[i]]$analysis$sea$envs[[j]]$contrast <- list();
+				env.name <- data$traits[[i]]$analysis$sea$envs[[j]]$name;
 				if(acrossEnv)
 				{
 					# -- This conditions showed warning messages not stop excution---#
-					if(data$traits[[i]]$sites[[j]]$restricted$isTRUE)
+					if(data$traits[[i]]$envs[[j]]$restricted$isTRUE)
 					{
-						data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$messages <- paste("\tWarning, there are missing rate larger than specified one on ", 
+						data$traits[[i]]$analysis$sea$envs[[j]]$contrast$messages <- paste("\tWarning, there are missing rate larger than specified one on ", 
 								env.name, " of ", trait.name, 
 								". Cannot proceed with contrast analysis!\n" , sep = "" );
-						data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$error <- TRUE;
-						data$traits[[i]]$analysis$ssa$sites[[j]]$outcome <- NA;
+						data$traits[[i]]$analysis$sea$envs[[j]]$contrast$error <- TRUE;
+						data$traits[[i]]$analysis$sea$envs[[j]]$outcome <- NA;
 						next;
 					}
 					
 					# -- This conditions showed warning messages not stop excution---#
-					if(data$traits[[i]]$analysis$ssa$sites[[j]]$lmerRun == "ERROR")
+					if(data$traits[[i]]$analysis$sea$envs[[j]]$lmerRun == "ERROR")
 					{
-						data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$messages <- paste("\tWarning, there are some errors of lmer model occured on ", 
+						data$traits[[i]]$analysis$sea$envs[[j]]$contrast$messages <- paste("\tWarning, there are some errors of lmer model occured on ", 
 								env.name, " of ", trait.name, 
 								". Cannot proceed with contrast analysis!\n" , sep = "" );
-						data$traits[[i]]$analysis$ssa$site[[j]]$contrast$error <- TRUE;
-						data$traits[[i]]$analysis$ssa$site[[j]]$contrast$outcome <- NA;
+						data$traits[[i]]$analysis$sea$site[[j]]$contrast$error <- TRUE;
+						data$traits[[i]]$analysis$sea$site[[j]]$contrast$outcome <- NA;
 						next;
 					}
 					
-					data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$messages <- paste("There are nothing wrong on this ", 
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$messages <- paste("There are nothing wrong on this ", 
 							env.name, " on ", trait.name, ".\n", sep = "");
-					data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$error <- FALSE;
-					model <- data$traits[[i]]$analysis$ssa$sites[[j]]$model;
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$error <- FALSE;
+					model <- data$traits[[i]]$analysis$sea$envs[[j]]$model;
 					genoContrastTemp <- t(genoContrast[[1]]);
 					genoContrastTemp <- as.data.frame(genoContrastTemp);
 					genoFactorName <- names(model@frame)[2];
 					genoContrastTemp <- list(genoContrastTemp);
 					names(genoContrastTemp) <- genoFactorName;
 					temp <- testInteractions(model, custom=genoContrastTemp);
-					data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$outcome <- temp;
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome <- temp;
 					
 				} else
 				{
 					# -- This conditions showed warning messages not stop excution---#
-					if(data$traits[[i]]$sites[[j]]$restricted$isTRUE)
+					if(data$traits[[i]]$envs[[j]]$restricted$isTRUE)
 					{
-						data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$messages <- paste("\tWarning, there are missing rate larger than specified one on ", 
+						data$traits[[i]]$analysis$sea$envs[[j]]$contrast$messages <- paste("\tWarning, there are missing rate larger than specified one on ", 
 								env.name, " of ", trait.name, 
 								". Cannot proceed with contrast analysis!\n" , sep = "" );
-						data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$error <- TRUE;
-						data$traits[[i]]$analysis$ssa$sites[[j]]$outcome <- NA;
+						data$traits[[i]]$analysis$sea$envs[[j]]$contrast$error <- TRUE;
+						data$traits[[i]]$analysis$sea$envs[[j]]$outcome <- NA;
 						next;
 					}
 					
 					# -- This conditions showed warning messages not stop excution---#
-					if(data$traits[[i]]$analysis$ssa$sites[[j]]$lmerRun == "ERROR")
+					if(data$traits[[i]]$analysis$sea$envs[[j]]$lmerRun == "ERROR")
 					{
-						data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$messages <- paste("\tWarning, there are some errors of lmer model occured on ", 
+						data$traits[[i]]$analysis$sea$envs[[j]]$contrast$messages <- paste("\tWarning, there are some errors of lmer model occured on ", 
 								env.name, " of ", trait.name, 
 								". Cannot proceed with contrast analysis!\n" , sep = "" );
-						data$traits[[i]]$analysis$ssa$site[[j]]$contrast$error <- TRUE;
-						data$traits[[i]]$analysis$ssa$site[[j]]$contrast$outcome <- NA;
+						data$traits[[i]]$analysis$sea$site[[j]]$contrast$error <- TRUE;
+						data$traits[[i]]$analysis$sea$site[[j]]$contrast$outcome <- NA;
 						next;
 					}
 					
-					data$traits[[i]]$analysis$ssa$site[[j]]$contrast$messages <- paste("There are nothing wrong on this ", 
+					data$traits[[i]]$analysis$sea$site[[j]]$contrast$messages <- paste("There are nothing wrong on this ", 
 							env.name, " on ", trait.name, ".\n", sep = "");
-					data$traits[[i]]$analysis$ssa$site[[j]]$contrast$error <- FALSE;
-					model <- data$traits[[i]]$analysis$ssa$sites[[j]]$model;
+					data$traits[[i]]$analysis$sea$site[[j]]$contrast$error <- FALSE;
+					model <- data$traits[[i]]$analysis$sea$envs[[j]]$model;
 					genoContrastTemp <- t(genoContrast[[j]]);
 					genoContrastTemp <- as.data.frame(genoContrastTemp);
 					genoFactorName <- names(model@frame)[2];
 					genoContrastTemp <- list(genoContrastTemp);
 					names(genoContrastTemp) <- genoFactorName;
 					temp <- testInteractions(model, custom=genoContrastTemp);
-					data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$outcome <- temp;
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome <- temp;
 				}#--- end statment of if(acrossEnv)---#
 				
 			}#--- end statment of for(j in 1:site.number---#
@@ -386,12 +386,12 @@ doContrast.SingleEnvAnalysis <- function(
 			for(i in 1:respvar.number)
 			{	
 				trait.name <- data$traits[[i]]$name;
-				site.number <- length(data$traits[[i]]$analysis$ssa$sites);
+				site.number <- length(data$traits[[i]]$analysis$sea$envs);
 				for(j in 1:site.number)
 				{
-					env.name <- data$traits[[i]]$analysis$ssa$sites[[j]]$name;
+					env.name <- data$traits[[i]]$analysis$sea$envs[[j]]$name;
 					#--- This conditions show warning messages not stop execution---#
-					if(data$traits[[i]]$sites[[j]]$restricted$isTRUE)
+					if(data$traits[[i]]$envs[[j]]$restricted$isTRUE)
 					{
 						warning(paste("\tError: There are too many missing observations on ", 
 										env.name, " of ", triat.name, ". ",
@@ -399,7 +399,7 @@ doContrast.SingleEnvAnalysis <- function(
 						next;
 					}
 					# -- The condition showed warning messages not stop execution.---#
-					if(data$traits[[i]]$analysis$ssa$sites[[j]]$lmerRun == "ERROR") 
+					if(data$traits[[i]]$analysis$sea$envs[[j]]$lmerRun == "ERROR") 
 					{
 						warning(paste("\tError: There are some error of lmer model on ", 
 										env.name, " of ", trait.name, ". ",
@@ -407,7 +407,7 @@ doContrast.SingleEnvAnalysis <- function(
 						next;
 					}
 					
-					model <- data$traits[[i]]$analysis$ssa$sites[[j]]$model;
+					model <- data$traits[[i]]$analysis$sea$envs[[j]]$model;
 					trmtLevels <- levels(model$frame[,2]);
 					trmtLevels.length <- length(trmtLevels);
 					if(data$gene.numer == 2)
@@ -449,15 +449,15 @@ doContrast.SingleEnvAnalysis <- function(
 			for(i in 1:respvar.number)
 			{
 				trait.name <- data$traits[[i]]$name;
-				site.number <- length(data$traits[[i]]$analysis$sites);
-				data$traits[[i]]$analysis$ssa$sites[[j]]$contrast <- list();
+				site.number <- length(data$traits[[i]]$analysis$envs);
+				data$traits[[i]]$analysis$sea$envs[[j]]$contrast <- list();
 				for(j in 1:site.number)
 				{
-					env.name <- data$traits[[i]]$analysis$ssa$sites[[j]]$name;
-					data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$messages <- paste("There are nothing wrong on this ", 
+					env.name <- data$traits[[i]]$analysis$sea$envs[[j]]$name;
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$messages <- paste("There are nothing wrong on this ", 
 							env.name, " on ", trait.name, ".\n", sep = "");
-					data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$error <- FALSE;
-					model <- data$traits[[i]]$analysis$ssa$sites[[j]]$model;
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$error <- FALSE;
+					model <- data$traits[[i]]$analysis$sea$envs[[j]]$model;
 					trmtLevels <- levels(model@frame[,2]);
 					trmtLevelsLength <- length(trmtLevels);
 					genoContrast <- NA;
@@ -477,7 +477,7 @@ doContrast.SingleEnvAnalysis <- function(
 					genoContrastTemp <- list(genoContrastTemp);
 					names(genoContrastTemp) <- genoFactorName;
 					temp <- testInteractions(model, custom=genoContrastTemp);
-					data$traits[[i]]$analysis$ssa$sites[[j]]$contrast$outcome <- temp;
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome <- temp;
 				}
 			}
 			detach("package:phia");
@@ -499,7 +499,7 @@ doContrast.MultiEnvAnalysis <- function(
 {
 	if(missing(data))
 		stop("\tError: The argument of data could not be null!\n");
-	if(!inherits(data, MultiSiteAnalysis))
+	if(!inherits(data, MultiEnvAnalysis))
 		stop("\tError: The argument of data should be of class MultiSiteAnalysis!\n");
 	contrastOpt <- match.arg(contrastOpt);
 	

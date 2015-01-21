@@ -45,8 +45,8 @@ graph.boxplot.SingleEnvAnalysis <- function
           {
             png(boxfile);
             xlabel = trait.name;
-            boxplot(as.numeric(data$traits[[i]]$envs[[j]]$data[,trait.name]), xlab = xlabel, 
-                     main = paste("Boxplot of ", trait.name, sep=""));
+            boxplot(as.numeric(as.character(data$traits[[i]]$envs[[j]]$data[,trait.name])),
+                    xlab = xlabel, main = paste("Boxplot of ", trait.name, sep=""));
             dev.off();
           }
         }
@@ -58,7 +58,7 @@ graph.boxplot.SingleEnvAnalysis <- function
         {
           png(boxfile);
           xlabel = trait.name;
-          boxplot(as.numeric(data$raw.data[,trait.name]) ~ as.factor(data$raw.data[,env.label]), 
+          boxplot(as.numeric(as.character(data$raw.data[,trait.name])) ~ as.factor(data$raw.data[,env.label]), 
                   data = data$raw.data, xlab = xlabel, main = paste("Boxplot of ", trait.name, sep=""));
           dev.off();
         }
