@@ -85,15 +85,17 @@ doSEA.PhenotypicData <- function(
       #--- construct model, geno as fixed factor ---#
       if(exptl.design == "RCB" || exptl.design == "AugRCB")
       {
+        block <- data$traits[[i]]$envs[[j]]$design$block;
         block.levels <- data$traits[[i]]$envs[[j]]$design$block.levels;
         factor.summary <- rbind(factor.summary,c(block, length(block.levels), 
                                                  ifelse(length(block.levels) <= 4, block.levels, 
                                                         paste(block.levels[1:3],"...",block.levels[length(block.levels)])
                                                  )));
-        block <- data$traits[[i]]$envs[[j]]$design$block;
         myformula1 <- paste(trait.name, " ~ 1 + ", geno, " + (1|",block, ")", sep="");
       } else if(exptl.design == "AugLS")
       {
+        row <- data$traits[[i]]$envs[[j]]$design$row;
+        column <- data$traits[[i]]$envs[[j]]$design$column;
         row.levels <- data$traits[[i]]$envs[[j]]$design$row.levels;
         factor.summary <- rbind(factor.summary,c(row, length(row.levels), 
                                                  ifelse(length(row.levels) <= 4, row.levels, 
@@ -104,11 +106,11 @@ doSEA.PhenotypicData <- function(
                                                  ifelse(length(column.levels) <= 4, column.levels, 
                                                         paste(column.levels[1:3],"...",column.levels[length(column.levels)])
                                                  )));
-        row <- data$traits[[i]]$envs[[j]]$design$row;
-        column <- data$traits[[i]]$envs[[j]]$design$column;
         myformula1 <- paste(trait.name, " ~ 1 + ", geno, " + (1|", row , "), + (1|", column, ")", sep ="");
       } else if(exptl.design == "Alpha")
       {
+        block <- data$traits[[i]]$envs[[j]]$design$block;
+        rep <- data$traits[[i]]$envs[[j]]$design$rep;
         block.levels <- data$traits[[i]]$envs[[j]]$design$block.levels;
         factor.summary <- rbind(factor.summary,c(block, length(block.levels), 
                                                  ifelse(length(block.levels) <= 4, block.levels, 
@@ -119,11 +121,12 @@ doSEA.PhenotypicData <- function(
                                                  ifelse(length(rep.levels) <= 4, rep.levels, 
                                                         paste(rep.levels[1:3],"...",rep.levels[length(rep.levels)])
                                                  )));
-        block <- data$traits[[i]]$envs[[j]]$design$block;
-        rep <- data$traits[[i]]$envs[[j]]$design$rep;
         myformula1 <- paste(trait.name, " ~ 1 + ", geno," + (1|", rep,"/", block,")", sep = "");
       } else if(exptl.design == "RowCol")
       {
+        row <- data$traits[[i]]$envs[[j]]$design$row;
+        column <- data$traits[[i]]$envs[[j]]$design$column;
+        rep <- data$traits[[i]]$envs[[j]]$design$rep;
         row.levels <- data$traits[[i]]$envs[[j]]$design$row.levels;
         factor.summary <- rbind(factor.summary,c(row, length(row.levels), 
                                                  ifelse(length(row.levels) <= 4, row.levels, 
@@ -139,12 +142,11 @@ doSEA.PhenotypicData <- function(
                                                  ifelse(length(rep.levels) <= 4, rep.levels, 
                                                         paste(rep.levels[1:3],"...",rep.levels[length(rep.levels)])
                                                  )));
-        row <- data$traits[[i]]$envs[[j]]$design$row;
-        column <- data$traits[[i]]$envs[[j]]$design$column;
-        rep <- data$traits[[i]]$envs[[j]]$design$rep;
         myformula1 <- paste(trait.name, " ~ 1 + ", geno," + (1|", rep,") + (1|", rep,":", row,") + (1|", rep, ":", column,")", sep = "");
       } else if(exptl.design == "LatinAlpha")
       {
+        block <- data$traits[[i]]$envs[[j]]$design$block;
+        rep <- data$traits[[i]]$envs[[j]]$design$rep;
         block.levels <- data$traits[[i]]$envs[[j]]$design$block.levels;
         factor.summary <- rbind(factor.summary,c(block, length(block.levels), 
                                                  ifelse(length(block.levels) <= 4, block.levels, 
@@ -155,11 +157,12 @@ doSEA.PhenotypicData <- function(
                                                  ifelse(length(rep.levels) <= 4, rep.levels, 
                                                         paste(rep.levels[1:3],"...",rep.levels[length(rep.levels)])
                                                  )));
-        block <- data$traits[[i]]$envs[[j]]$design$block;
-        rep <- data$traits[[i]]$envs[[j]]$design$rep;
         myformula1 <- paste(trait.name, " ~ 1 + ", geno, " + (1|", rep,") + (1|", block,") + (1|", rep, ":", block, ")", sep = "");
       } else if(exptl.design == "LatinRowCol")
       {
+        row <- data$traits[[i]]$envs[[j]]$design$row;
+        column <- data$traits[[i]]$envs[[j]]$design$column;
+        rep <- data$traits[[i]]$envs[[j]]$design$rep;
         row.levels <- data$traits[[i]]$envs[[1]]$design$row.levels;
         factor.summary <- rbind(factor.summary,c(row, length(row.levels), 
                                                  ifelse(length(row.levels) <= 4, row.levels, 
@@ -175,9 +178,6 @@ doSEA.PhenotypicData <- function(
                                                  ifelse(length(rep.levels) <= 4, rep.levels, 
                                                         paste(rep.levels[1:3],"...",rep.levels[length(rep.levels)])
                                                  )));
-        row <- data$traits[[i]]$envs[[j]]$design$row;
-        column <- data$traits[[i]]$envs[[j]]$design$column;
-        rep <- data$traits[[i]]$envs[[j]]$design$rep;
         longerRow <- data$traits[[i]]$envs[[j]]$design$longerRow;
         if(longerRow)
         {
