@@ -1407,7 +1407,7 @@ print.PhenotypicData <- function(data, level = 1)
 		cat("\tRestricted conditions:\n");
 		cat("\t\tMissing Rate = ", data$traits[[1]]$envs[[1]]$restricted$missing.rate.cond, ".\n", sep = "");
 	} 
-	cat(rep("-.-", 50));
+	cat(rep("-", 40), sep="");
 	cat("\n");
 	
 	#else
@@ -1462,7 +1462,7 @@ print.PhenotypicData <- function(data, level = 1)
 				cat("\t\t\t", "The missing rate are ", data$traits[[i]]$envs[[j]]$missing.rate, ".\n");
 				cat("\n");
 			}
-			cat(rep("-.-", 50), "\n");
+			cat(rep("-", 40), "\n", sep="");
 			
 		} #--- end stmt of for(j in 1:data$traits[[i]]$envs.number)---#
 	#} #--- end stmt of if(data$isRestricted)---#
