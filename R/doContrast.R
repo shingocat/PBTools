@@ -135,6 +135,9 @@ doContrast.SingleEnvAnalysis <- function(
 # 				{
 # 					rownames(signif) <- 1:nrow(signif);
 # 				}
+        data$traits[[i]]$analysis$sea$envs[[j]]$contrast$type <- contrastOpt;
+        data$traits[[i]]$analysis$sea$envs[[j]]$contrast$recurrent <- recurrentParent;
+        data$traits[[i]]$analysis$sea$envs[[j]]$contrast$alpha <- alpha;
 				data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome <- temp;
 			}
 		}
@@ -363,6 +366,7 @@ doContrast.SingleEnvAnalysis <- function(
 					genoContrastTemp <- list(genoContrastTemp);
 					names(genoContrastTemp) <- genoFactorName;
 					temp <- testInteractions(model, custom=genoContrastTemp);
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$type <- contrastOpt;
 					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome <- temp;
 				}#--- end statment of if(acrossEnv)---#
 				
@@ -461,14 +465,17 @@ doContrast.SingleEnvAnalysis <- function(
 					trmtLevels <- levels(model@frame[,2]);
 					trmtLevelsLength <- length(trmtLevels);
 					genoContrast <- NA;
+          gene.number <- 2;
 					if(trmtLevelsLength == 9)
 					{
 						genoContrast <- getDefaultGenesContrast(2);
 					} else if (trmtLevelsLength == 27)
 					{
+            gene.number <- 3;
 						genoContrast <- getDefaultGenesContrast(3);
 					} else if (trmtLevelsLength == 81)
 					{
+            gene.number <- 4;
 						genoContrast <- getDefaultGenesContrast(4);
 					}
 					genoContrastTemp <- t(genoContrast);
@@ -477,6 +484,8 @@ doContrast.SingleEnvAnalysis <- function(
 					genoContrastTemp <- list(genoContrastTemp);
 					names(genoContrastTemp) <- genoFactorName;
 					temp <- testInteractions(model, custom=genoContrastTemp);
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$type <- contrastOpt;
+					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$gene.number <- gene.number;
 					data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome <- temp;
 				}
 			}
