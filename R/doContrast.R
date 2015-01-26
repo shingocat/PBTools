@@ -412,7 +412,7 @@ doContrast.SingleEnvAnalysis <- function(
 					}
 					
 					model <- data$traits[[i]]$analysis$sea$envs[[j]]$model;
-					trmtLevels <- levels(model$frame[,2]);
+					trmtLevels <- levels(mdoel@frame[,2]);
 					trmtLevels.length <- length(trmtLevels);
 					if(data$gene.numer == 2)
 					{
@@ -508,17 +508,17 @@ doContrast.MultiEnvAnalysis <- function(
 {
 	if(missing(data))
 		stop("\tError: The argument of data could not be null!\n");
-	if(!inherits(data, MultiEnvAnalysis))
+	if(!inherits(data, "MultiEnvAnalysis"))
 		stop("\tError: The argument of data should be of class MultiSiteAnalysis!\n");
 	contrastOpt <- match.arg(contrastOpt);
 	
-	library(phia);
-	library(lme4);
+#	library(phia);
+#	library(lme4);
 	
 	if(contrastOpt == "RecurrentParent")
 	{
 		if(missing(recurrentParent))
-			stop("\tError: The argument of recurrentParent should be null when contrastOpt is selected RecurrentParent!\n");
+			stop("\tError: The argument of recurrentParent should not be null when contrastOpt is selected RecurrentParent!\n");
 		if(!is.vector(recurrentParent, mode = "character"))
 			stop("\tError: The argument of recurrentParent should be vector when contrastOpt is selected RecurrentParent!\n");
 		if(length(recurrentParent) != 1)
@@ -527,8 +527,8 @@ doContrast.MultiEnvAnalysis <- function(
 		#--- checking conditions---#
 		for(i in 1:respvar.number)
 		{
-			is.envFixed <- data$traits[[i]]$msa$envFixed;
-			model <- data$traits[[i]]$msa$model;
+			is.envFixed <- data$traits[[i]]$analysis$mea$envFixed;
+			model <- data$traits[[i]]$analysis$mea$model;
 			trmtLevels <- levels(model@frame[ , 2]);
 			envLevels <- levels(model@frame[ , 3]);
 			#--- checking whether the specified recurrent parent exist!---#
@@ -569,12 +569,12 @@ doContrast.MultiEnvAnalysis <- function(
 		#---compute contrast comparing on recurrent parent---#
 		for(i in 1:respvar.number)
 		{
-			is.envFixed <- data$traits[[i]]$analysis$msa$envFixed;
-			model <- data$traits[[i]]$analysis$msa$model;
-			data$traits[[i]]$analysis$msa$contrast <- list();	
+			is.envFixed <- data$traits[[i]]$analysis$mea$envFixed;
+			model <- data$traits[[i]]$analysis$mea$model;
+			data$traits[[i]]$analysis$mea$contrast <- list();	
 			
 			genoFactorName <- names(model@frame)[2];
-			envFactorName <- names(model$frame)[3];
+			envFactorName <- names(model@frame)[3];
 			trmtLevels <- levels(model@frame[ ,2]);
 			trmtLevels.without.rp <- trmtLevels[(trmtLevels != recurrentParent)];
 			trmtContrast <- diag(1, nrow = length(trmtLevels.without.rp), ncol=length(trmtLevels.without.rp));
@@ -584,25 +584,27 @@ doContrast.MultiEnvAnalysis <- function(
 			trmtContrast <- as.data.frame(t(trmtContrast));
 			trmtContrast <- list(genoFactorName = trmtContrast);
 			names(trmtContrast) <- genoFactorName;
+      data$traits[[i]]$analysis$mea$contrast$type <- contrastOpt;
+      data$tratis[[i]]$analysis$mea$contrast$recurrent <- recurrentParent;
 			if(is.envFixed)
 			{
 				if(is.null(envContrast))
 				{
-					data$traits[[i]]$analysis$msa$contrast$contrastOnGeno <- testInteractions(model, custom = trmtContrast);
-					data$traits[[i]]$analysis$msa$contrast$contrastAcrossEnv <- testInteraction(model, custom = trmtContrast, across = envFactorName);
+					data$traits[[i]]$analysis$mea$contrast$contrastOnGeno <- testInteractions(model, custom = trmtContrast);
+					data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv <- testInteractions(model, custom = trmtContrast, across = envFactorName);
 				} else 
 				{
-					data$traits[[i]]$analysis$msa$contrast$contrastOnGeno <- testInteractions(model, custom = trmtContrast);
+					data$traits[[i]]$analysis$mea$contrast$contrastOnGeno <- testInteractions(model, custom = trmtContrast);
 					tempEnvContrast <- envContrast;
 					tempEnvContrast <- as.data.frame(t(tempEnvContrast));
 					trmtContrast$tempEnvContrast <- tempEnvContrast;
 					names(trmtContrast) <- c(genoFactorName, envFactorName);
-					data$traits[[i]]$analysis$msa$contrast$contrastAcrossEnv <- testInteraction(model, custom = trmtContrast);
+					data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv <- testInteractions(model, custom = trmtContrast);
 				}
 			} else
 			{
-				data$traits[[i]]$analysis$msa$contrast$contrastOnGeno <- testInteractions(model, custom = trmtContrast);
-				data$traits[[i]]$analysis$msa$contrast$contrastAcrossEnv <- NA;
+				data$traits[[i]]$analysis$mea$contrast$contrastOnGeno <- testInteractions(model, custom = trmtContrast);
+				data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv <- NA;
 			}
 			
 		}
@@ -617,10 +619,10 @@ doContrast.MultiEnvAnalysis <- function(
 		#--- checking conditions---#
 		for(i in 1:respvar.number)
 		{
-			is.envFixed <- data$traits[[i]]$analysis$msa$envFixed;
-			model <- data$traits[[i]]$analysis$msa$model;
-			trmtLevels <- levels(model$frame[,2]);
-			envLevels <- levels(model$frame[,3]);
+			is.envFixed <- data$traits[[i]]$analysis$mea$envFixed;
+			model <- data$traits[[i]]$analysis$mea$model;
+			trmtLevels <- levels(model@frame[,2]);
+			envLevels <- levels(model@frame[,3]);
 			genoColContrastName <- colnames(genoContrast);
 			
 			#---checking whether the specified genoContrast levels exist!---#
@@ -690,9 +692,9 @@ doContrast.MultiEnvAnalysis <- function(
 		#---compute contrast comparing---#
 		for(i in 1:respvar.number)
 		{
-			is.envFixed <- data$traits[[i]]$analysis$msa$envFixed;
-			model <- data$traits[[i]]$analysis$msa$model;
-			data$traits[[i]]$analysis$msa$contrast <- list();
+			is.envFixed <- data$traits[[i]]$analysis$mea$envFixed;
+			model <- data$traits[[i]]$analysis$mea$model;
+			data$traits[[i]]$analysis$mea$contrast <- list();
 			
 			genoFactorName <- names(model@frame)[2];
 			envFactorName <- names(model@frame)[3];
@@ -705,21 +707,21 @@ doContrast.MultiEnvAnalysis <- function(
 			{
 				if(is.null(envContrast))
 				{	
-					data$traits[[i]]$analysis$msa$contrast$contrastOnGeno <- testInteractions(model, custom= trmtContrast);
-					data$traits[[i]]$analysis$msa$contrast$contrastAcrossEnv <- testInteractions(model, custom=trmtContrast, across = envFactorName);
+					data$traits[[i]]$analysis$mea$contrast$contrastOnGeno <- testInteractions(model, custom= trmtContrast);
+					data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv <- testInteractions(model, custom=trmtContrast, across = envFactorName);
 				} else
 				{
-					data$traits[[i]]$analysis$msa$contrast$contrastOnGeno <- testInteractions(model, custom= trmtContrast);
+					data$traits[[i]]$analysis$mea$contrast$contrastOnGeno <- testInteractions(model, custom= trmtContrast);
 					tempEnvContrast = envContrast;
 					tempEnvContrast = as.data.frame(t(tempEnvContrast));
 					trmtContrast$tempEnvContrast <- tempEnvContrast;
 					names(trmtContrast) <- c(genoFactorName, envFactorName);
-					data$traits[[i]]$analysis$msa$contrast$contrastAcrossEnv <- testInteractions(model, custom=trmtContrast);
+					data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv <- testInteractions(model, custom=trmtContrast);
 				}
 			} else
 			{
-				data$traits[[i]]$analysis$msa$contrast$contrastOnGeno <- testInteractions(model, custom=trmtContrast);
-				data$traits[[i]]$analysis$msa$contrast$contrastAcrossEnv <- NA;
+				data$traits[[i]]$analysis$mea$contrast$contrastOnGeno <- testInteractions(model, custom=trmtContrast);
+				data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv <- NA;
 			}
 		}
 	} else if(contrastOpt == "Default")
@@ -740,8 +742,8 @@ doContrast.MultiEnvAnalysis <- function(
 			respvar.number <- length(data$traits);
 			for( i in 1:respvar.number)
 			{
-				is.envFixed <- data$traits[[i]]$analysis$msa$envFixed;
-				model <- data$traits[[i]]$analysis$msa$model;
+				is.envFixed <- data$traits[[i]]$analysis$mea$envFixed;
+				model <- data$traits[[i]]$analysis$mea$model;
 				trmtLevels <- levels(model@frame[ , 2]);
 				envLevels <- levels(model@frame[ , 3]);
 				trait.name <- data$traits[[i]]$name;
@@ -823,9 +825,9 @@ doContrast.MultiEnvAnalysis <- function(
 			
 			for(i in 1 : respvar.number)
 			{
-				is.envFixed <- data$traits[[i]]$analsyis$msa$envFixed;
-				model <- data$traits[[i]]$analysis$msa$model;
-				data$traits[[i]]$analysis$msa$contrast <- list();
+				is.envFixed <- data$traits[[i]]$analsyis$mea$envFixed;
+				model <- data$traits[[i]]$analysis$mea$model;
+				data$traits[[i]]$analysis$mea$contrast <- list();
 				
 				genoFactorName <- names(model@frame)[2];
 				envFactorName <- names(model@frame)[3];
@@ -844,28 +846,28 @@ doContrast.MultiEnvAnalysis <- function(
 				{
 					if(is.null(envContrast))
 					{	
-						data$traits[[i]]$analysis$msa$contrast$contrastOnGeno <- testInteractions(model, custom= trmtContrast);
-						data$traits[[i]]$analysis$msa$contrast$contrastAcrossEnv <- testInteractions(model, custom=trmtContrast, across = envFactorName);
+						data$traits[[i]]$analysis$mea$contrast$contrastOnGeno <- testInteractions(model, custom= trmtContrast);
+						data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv <- testInteractions(model, custom=trmtContrast, across = envFactorName);
 					} else
 					{
-						data$traits[[i]]$analysis$msa$contrast$contrastOnGeno <- testInteractions(model, custom= trmtContrast);
+						data$traits[[i]]$analysis$mea$contrast$contrastOnGeno <- testInteractions(model, custom= trmtContrast);
 						tempEnvContrast = envContrast;
 						tempEnvContrast = as.data.frame(t(tempEnvContrast));
 						trmtContrast$tempEnvContrast <- tempEnvContrast;
 						names(trmtContrast) <- c(genoFactorName, envFactorName);
-						data$traits[[i]]$analysis$msa$contrast$contrastAcrossEnv <- testInteractions(model, custom=trmtContrast);
+						data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv <- testInteractions(model, custom=trmtContrast);
 					}
 				} else
 				{
-					data$traits[[i]]$analysis$msa$contrast$contrastOnGeno <- testInteractions(model, custom=trmtContrast);
-					data$traits[[i]]$analysis$msa$contrast$contrastAcrossEnv <- NA;
+					data$traits[[i]]$analysis$mea$contrast$contrastOnGeno <- testInteractions(model, custom=trmtContrast);
+					data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv <- NA;
 				}
 			}
 		}#--- end of statement if(data$pop.type != "PL);
 	} #--- end of statement if(contrastOpt == "RecurrentParent")
 	
-	detach("package:phia");
-	detach("package:lme4");
+# detach("package:phia");
+#	detach("package:lme4");
 	
 	return(data);
 }
