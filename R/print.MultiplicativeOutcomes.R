@@ -24,7 +24,6 @@ print.MultiplicativeOutcomes <- function(
     {
       warning(paste("\tWarnings: There are no AMMI Analysis on "
                     ," this trait ", trait.name, ".\n", sep=""));
-      next;
     } else
     {
       cat(rep("-",40),sep="");
@@ -44,11 +43,11 @@ print.MultiplicativeOutcomes <- function(
       }
       cat("\n");
     }
+    #for gge
     if(is.null(data$traits[[i]]$analysis$mea$gge))
     {
       warning(paste("\tWarnings: There are no GGE Analysis on "
                     ," this trait ", trait.name, ".\n", sep=""));
-      next;
     } else
     {
       cat(rep("-",40),sep="");
@@ -65,10 +64,9 @@ print.MultiplicativeOutcomes <- function(
                   ," this trait ", trait.name, ".\n", sep=""));
       }else
       {  
-        print(data$traits[[i]]$analysis$mea$gge$analysis);
+        print(data$traits[[1]]$analysis$mea$gge$analysis);
       }
       cat("\n");
     }
-    
   }#end stmt  for(i in 1:length(data))
 }
