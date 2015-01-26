@@ -26,12 +26,22 @@ files,
   for(i in 1:length(files))
   {
     contrast <- read.csv(file=files[i], header=TRUE, row.names =1);
-    labels <- rownames(contrast);
     if(all(is.na(contrast[ncol(contrast)])))
-      contrast <- contrast[, -ncol(contrast)]
-    contrast <- apply(contrast, 2, as.character);
-    contrast <- apply(contrast, 2, as.numeric);
-    contrast <- as.matrix(contrast);
+      contrast <- contrast[, -ncol(contrast)];
+    labels <- rownames(contrast);
+    if(nrow(contrast) == 1)
+    {
+      contrast <- apply(contrast, 2, as.character);
+      contrast <- t(as.data.frame(contrast));
+      contrast <- apply(contrast, 2, as.numeric);
+      contrast <- t(as.data.frame(contrast))
+      contrast <- as.matrix(contrast);
+    } else
+    {
+      contrast <- apply(contrast, 2, as.character);
+      contrast <- apply(contrast, 2, as.numeric);
+      contrast <- as.matrix(contrast);
+    }
     rownames(contrast) <- labels;
     outcomes[[i]] <- contrast;
   }
