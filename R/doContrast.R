@@ -613,9 +613,12 @@ doContrast.MultiEnvAnalysis <- function(
 	{
 		if(missing(genoContrast))
 			stop("\tError: The argument of genoContrast could not be null when contrastOpt is Custom!\n");
-		if(!is.matrix(genoContrast))
-			stop("\tError: The genoContrast should be matrix format!\n");
-		respvar.number <- length(data$traits);
+		if(!is.list(genoContrast))
+			stop("\tError: The genoContrast should be list format!\n");
+    if(length(genoContrast) != 1)
+      stop("\tError: The genoContrast should be only one element!\n");
+		genoContrast <- genoContrast[[1]];
+    respvar.number <- length(data$traits);
 		#--- checking conditions---#
 		for(i in 1:respvar.number)
 		{
@@ -623,7 +626,7 @@ doContrast.MultiEnvAnalysis <- function(
 			model <- data$traits[[i]]$analysis$mea$model;
 			trmtLevels <- levels(model@frame[,2]);
 			envLevels <- levels(model@frame[,3]);
-			genoColContrastName <- colnames(genoContrast);
+			genoColContrastNames <- colnames(genoContrast);
 			
 			#---checking whether the specified genoContrast levels exist!---#
 			if(!(is.null(genoColContrastNames)))
@@ -652,11 +655,13 @@ doContrast.MultiEnvAnalysis <- function(
 			{
 				if(!is.null(envContrast))
 				{	
-					if(!is.matrix(envContrast))
+					if(!is.list(envContrast))
 					{
-						stop("\tError: The specified envContrast should be matrix fromat!\n");
+						stop("\tError: The specified envContrast should be list fromat!\n");
 					}
-					
+          if(length(envContrast) != 1)
+            stop("\tError: The specified envContrast should be only one element!\n");
+					envContrast <- envContrast[[1]]
 					envColContrastNames <- colnames(envContrast);
 					
 					if(!(is.null(envColContrastNames)))
@@ -703,6 +708,7 @@ doContrast.MultiEnvAnalysis <- function(
 			trmtContrast <- as.data.frame(t(tempGenoContrast));
 			trmtContrast <- list(genoFactorName = trmtContrast);
 			names(trmtContrast) <- genoFactorName;
+      data$traits[[i]]$analysis$mea$contrast$type  <- contrastOpt;
 			if(is.envFixed)
 			{
 				if(is.null(envContrast))

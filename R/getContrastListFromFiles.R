@@ -26,11 +26,13 @@ files,
   for(i in 1:length(files))
   {
     contrast <- read.csv(file=files[i], header=TRUE, row.names =1);
+    labels <- rownames(contrast);
     if(all(is.na(contrast[ncol(contrast)])))
       contrast <- contrast[, -ncol(contrast)]
     contrast <- apply(contrast, 2, as.character);
     contrast <- apply(contrast, 2, as.numeric);
     contrast <- as.matrix(contrast);
+    rownames(contrast) <- labels;
     outcomes[[i]] <- contrast;
   }
   return(outcomes);
