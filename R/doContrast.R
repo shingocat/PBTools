@@ -550,7 +550,7 @@ doContrast.MultiEnvAnalysis <- function(
           data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv <- testInteractions(model, custom = trmtContrast);
         } else
         {
-          message <- past("Environment contrast is not specify. Using default setting");
+          message <- paste("Environment contrast is not specify. Using default setting");
           warning(message);
           data$traits[[i]]$analysis$mea$contrast$error <- FALSE;
           data$traits[[i]]$analysis$mea$contrast$message <- message;
@@ -747,29 +747,6 @@ doContrast.MultiEnvAnalysis <- function(
       }	
     }
     
-    #---compute contrast comparing---#
-    for(i in 1:respvar.number)
-    {
-      is.envFixed <- data$traits[[i]]$analysis$mea$envFixed;
-      model <- data$traits[[i]]$analysis$mea$model;
-      data$traits[[i]]$analysis$mea$contrast <- list();
-      
-      
-      data$traits[[i]]$analysis$mea$contrast$type  <- contrastOpt;
-      if(is.envFixed)
-      {
-        if(is.null(envContrast))
-        {	
-          
-        } else
-        {
-          
-        }
-      } else
-      {
-        
-      }
-    }
   } else if(contrastOpt == "Default")
   {
     if(data$pop.type != "PL")

@@ -97,7 +97,7 @@ print.ContrastOutcomes.MultiEnvAnalysis <- function
       {
         cat(rep("-", times = 40), sep = "");
         cat("\n");
-        cat("Trait: ", trati.name, "\n", sep="");
+        cat("Trait: ", trait.name, "\n", sep="");
         contrast.type = data$traits[[i]]$analysis$mea$contrast$type;
         if(contrast.type == "RecurrentParent")
         {
@@ -124,8 +124,7 @@ print.ContrastOutcomes.MultiEnvAnalysis <- function
         else if(nrow(data$traits[[i]]$analysis$mea$contrast$contrastOnGeno) == 0)
         {
           cat("There are no significant contrasts!\n")
-        }
-        else
+        }else
         {
            print(data$traits[[i]]$analysis$mea$contrast$contrastOnGeno, row.names = FALSE);
         }
