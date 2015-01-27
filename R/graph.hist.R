@@ -68,3 +68,35 @@ graph.hist.SingleEnvAnalysis <- function
     }
   }
 }
+
+
+graph.hist.MultiEnvAnalysis <- function
+(
+  data,
+  path,
+  ...
+)
+{
+  if(missing(path))
+    path <- getwd();
+  #creat hist plot of trait after SingleEnvAnalysis
+  for(i in 1:length(data$traits))
+  {
+    trait.name <- data$traits[[i]]$name;
+    if(is.null(data$traits[[i]]$analysis$mea))
+    {
+      warning(cat("\tSkip the ", trait.name, " histogram plot.\n",sep = ""));
+      next;
+    } else
+    {
+      if (!is.null(data$traits[[i]]$analysis$mea$data)) {
+        histfile = paste(getwd(),"/histMea1S_",trait.name,".png",sep="");
+        png(filename = histfile); # par(mfrow = n2mfrow(length(respvar)*nlevels(data[,match(env, names(data))])));
+        xlabel = trait.name;
+        hist(as.numeric(as.character(data$traits[[i]]$analysis$mea$data[,trait.name])), 
+             xlab = xlabel, main = paste("Histogram of ", trait.name, sep=""));
+        dev.off();
+      }
+    }
+  }#end stmt for(i in 1:length(data$traits))
+}

@@ -66,3 +66,35 @@ graph.boxplot.SingleEnvAnalysis <- function
     }
   }
 }
+
+graph.boxplot.MultiEnvAnalysis <- function
+(
+  data,
+  path,
+  single.env = FALSE,
+  ...
+)
+{
+  if(missing(path))
+    path <- getwd();
+  #create boxplot of traits after SingleEnvAnalysis on each environment.
+  for(i in 1:length(data$traits))
+  {
+    trait.name <- data$traits[[i]]$name;
+    if(is.null(data$traits[[i]]$analysis$mea))
+    {
+      warning(cat("\tSkip the ", trait.name, " boxplot\n",sep = ""));
+      next;
+    } else
+    {
+      boxfile = paste(getwd(),"/boxplotMea1S_",trait.name,".png",sep = "");
+      if (!all(is.na(data$traits[[i]]$analysis$mea$data[,trait.name]))) {
+        png(filename = boxfile); #par(mfrow = n2mfrow(length(respvar)));
+        xlabel = trait.name;
+        boxplot((data$traits[[i]]$analysis$mea$data[,trait.name]), data = data,
+                xlab = xlabel, main = paste("Boxplot of ", trait.name, sep=""));
+        dev.off()
+      }
+    }
+  }#end stmt  for(i in 1:length(data$traits))
+}
