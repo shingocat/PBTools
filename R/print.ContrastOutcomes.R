@@ -31,6 +31,7 @@ print.ContrastOutcomes.SingleEnvAnalysis <- function
         {
           cat(rep("-", times = 40), sep = "");
           cat("\n");
+          cat("Trait: ", trait.name, "\n", sep="");
           cat("Environment: ", env.name, "\n",sep ="");
           contrast.type = data$traits[[i]]$analysis$sea$envs[[j]]$contrast$type;
           if(contrast.type == "RecurrentParent")
@@ -52,10 +53,16 @@ print.ContrastOutcomes.SingleEnvAnalysis <- function
           }
           cat(rep("-", times = 40), sep = "");
           cat("\n");
-          if(nrow(data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome) == 0)
+          if(is.null(data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome))
+          { 
+            cat(data$traits[[i]]$analysis$sea$envs[[j]]$contrast$message,"!\n",sep="");
+          }else if (nrow(data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome) == 0)
+          { 
             cat("There are no significant contrasts!\n")
-          else
+          }else
+          {
             print(data$traits[[i]]$analysis$sea$envs[[j]]$contrast$outcome, row.names = FALSE);
+          }
           cat("\n");
         } else
         {
@@ -85,48 +92,65 @@ print.ContrastOutcomes.MultiEnvAnalysis <- function
     trait.name <- data$traits[[i]]$name;
     if(!is.null(data$traits[[i]]$analysis$mea))
     {
-        #--- contrast outcomes---#
-        if(!is.null(data$traits[[i]]$analysis$mea$contrast))
+      #--- contrast outcomes---#
+      if(!is.null(data$traits[[i]]$analysis$mea$contrast))
+      {
+        cat(rep("-", times = 40), sep = "");
+        cat("\n");
+        cat("Trait: ", trati.name, "\n", sep="");
+        contrast.type = data$traits[[i]]$analysis$mea$contrast$type;
+        if(contrast.type == "RecurrentParent")
         {
-          cat(rep("-", times = 40), sep = "");
+          cat("CONTRAST TYPE : Comparing With Recurrent Parent.\n" );
+          cat("Recurrent: ",data$tratis[[i]]$analysis$mea$contrast$recurrent, sep="");
           cat("\n");
-          contrast.type = data$traits[[i]]$analysis$mea$contrast$type;
-          if(contrast.type == "RecurrentParent")
-          {
-            cat("CONTRAST TYPE : Comparing With Recurrent Parent.\n" );
-            cat("Recurrent: ",data$tratis[[i]]$analysis$mea$contrast$recurrent, sep="");
-            cat("\n");
-          } else if(contrast.type == "Custom")
-          {
-            cat("CONTRAST TYPE : User Specified Contrast.\n" );
-            cat("\n");
-          } else if(contrast.type == "Default")
-          {
-            cat("CONTRAST TYPE : Default Pyramided Lines Contrast.\n" );
-            cat("Gene Number: ",data$traits[[i]]$analysis$mea$contrast$gene.number,sep="");
-            cat("\n");
-          }
-          cat(rep("-", times = 40), sep = "");
-          cat("\n");
-          cat("Contrast On Genotype:\n");
-          if(nrow(data$traits[[i]]$analysis$mea$contrast$contrastOnGeno) == 0)
-            cat("There are no significant contrasts!\n")
-          else
-            print(data$traits[[i]]$analysis$mea$contrast$contrastOnGeno, row.names = FALSE);
-          cat("\n");
-          cat("Contrast On Environment:\n");
-          if(nrow(data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv) == 0)
-            cat("There are no significant contrasts!\n")
-          else
-            print(data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv, row.names = FALSE);
-          cat("\n");
-        } else
+        } else if(contrast.type == "Custom")
         {
-          cat("NO CONTRAST OUTCOMES ON THIS TRAIT ", trait.name ,"on ", env.name," Environment.", sep="");
+          cat("CONTRAST TYPE : User Specified Contrast.\n" );
+          cat("\n");
+        } else if(contrast.type == "Default")
+        {
+          cat("CONTRAST TYPE : Default Pyramided Lines Contrast.\n" );
+          cat("Gene Number: ",data$traits[[i]]$analysis$mea$contrast$gene.number,sep="");
           cat("\n");
         }
         cat(rep("-", times = 40), sep = "");
         cat("\n");
+        cat("Contrast On Genotype:\n");
+        if(is.null(data$traits[[i]]$analysis$mea$contrast$contrastOnGeno))
+        {
+          cat(data$traits[[i]]$analysis$mea$contrast$message);
+        }
+        else if(nrow(data$traits[[i]]$analysis$mea$contrast$contrastOnGeno) == 0)
+        {
+          cat("There are no significant contrasts!\n")
+        }
+        else
+        {
+           print(data$traits[[i]]$analysis$mea$contrast$contrastOnGeno, row.names = FALSE);
+        }
+        cat("\n");
+        cat("Contrast On Environment:\n");
+        if(is.null(data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv))
+        {
+          cat(data$traits[[i]]$analysis$mea$contrast$message);
+        } 
+        else if (nrow(data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv) == 0)
+        {
+          cat("There are no contrast on environment!");
+        }
+        else
+        { 
+          print(data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv, row.names = FALSE);
+        }
+        cat("\n");
+      } else
+      {
+        cat("NO CONTRAST OUTCOMES ON THIS TRAIT ", trait.name ,"on ", env.name," Environment.", sep="");
+        cat("\n");
+      }
+      cat(rep("-", times = 40), sep = "");
+      cat("\n");
     }# end stmt of if(is.null(data$traits[[i]]$analysis$mea))
   }# end stmt of for(i in 1:data$trait.number)
 }
