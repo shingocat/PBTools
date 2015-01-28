@@ -761,6 +761,7 @@ doContrast.MultiEnvAnalysis <- function(
       biGeneLevels <- levels(interaction(list(A = c("AA","Aa","aa"),B = c("BB","Bb","bb")), sep="", lex.order = T));
       triGeneLevels <- levels(interaction(list(A = c("AA","Aa","aa"),B = c("BB","Bb","bb"), C = c("CC","Cc","cc")), sep="", lex.order = T));
       quadraGeneLevels <- levels(interaction(list(A = c("AA","Aa","aa"),B = c("BB","Bb","bb"), C = c("CC","Cc","cc"), D = c("DD","Dd","dd")), sep="", lex.order = T));
+      gene.number <- data$gene.num;
       
       respvar.number <- length(data$traits);
       for( i in 1:respvar.number)
@@ -770,7 +771,6 @@ doContrast.MultiEnvAnalysis <- function(
         trmtLevels <- levels(model@frame[ , 2]);
         envLevels <- levels(model@frame[ , 3]);
         trait.name <- data$traits[[i]]$name;
-        gene.number <- data$gene.num;
         data$traits[[i]]$analysis$mea$contrast <- list();
         data$traits[[i]]$analysis$mea$contrast$gene.number <- gene.number;
         data$traits[[i]]$analysis$mea$contrast$type <- contrastOpt;
@@ -833,7 +833,7 @@ doContrast.MultiEnvAnalysis <- function(
         genoFactorName <- names(model@frame)[2];
         envFactorName <- names(model@frame)[3];
         trmtLevels.length <- length(trmtLevels);
-        trmtContrast <- getDefaultGenesContrast(genNum);	
+        trmtContrast <- getDefaultGenesContrast(gene.number);	
         tempGenoContrast <- trmtContrast;
         trmtContrast <- as.data.frame(t(tempGenoContrast));
         trmtContrast <- list(genoFactorName = trmtContrast);
@@ -853,8 +853,8 @@ doContrast.MultiEnvAnalysis <- function(
               data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv <- NULL;
               next;
             }
-            envContrast <- envContrast[[1]];
-            envColContrastNames <- colnames(envContrast);
+            envContrastTemp <- envContrast[[1]];
+            envColContrastNames <- colnames(envContrastTemp);
             
             if(!(is.null(envColContrastNames)))
             {
@@ -890,7 +890,7 @@ doContrast.MultiEnvAnalysis <- function(
               next;
             }
             # checking the env coefficients to zero!
-            if(!all(rowSums(envContrast) == 0))
+            if(!all(rowSums(envContrastTemp) == 0))
             {
               message <- "\tError: Sum of each row should be equal to zero on envContrast!\n";
               warning(message);
@@ -904,7 +904,7 @@ doContrast.MultiEnvAnalysis <- function(
             data$traits[[i]]$analysis$mea$contrast$message <- message;
             data$traits[[i]]$analysis$mea$contrast$error <- FALSE;
             data$traits[[i]]$analysis$mea$contrast$contrastOnGeno <- testInteractions(model, custom= trmtContrast);
-            tempEnvContrast = envContrast;
+            tempEnvContrast = envContrastTemp;
             tempEnvContrast = as.data.frame(t(tempEnvContrast));
             trmtContrast$tempEnvContrast <- tempEnvContrast;
             names(trmtContrast) <- c(genoFactorName, envFactorName);
@@ -914,7 +914,7 @@ doContrast.MultiEnvAnalysis <- function(
             message <- "\tWarning: Using default environment contrast!";
             warning(message);
             data$traits[[i]]$analysis$mea$contrast$message <- message;
-            data$tratis[[i]]$analysis$mea$contrast$error <- FALSE;
+            data$traits[[i]]$analysis$mea$contrast$error <- FALSE;
             data$traits[[i]]$analysis$mea$contrast$contrastOnGeno <- testInteractions(model, custom= trmtContrast);
             data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv <- testInteractions(model, custom=trmtContrast, across = envFactorName);
           }

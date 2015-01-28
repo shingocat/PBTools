@@ -23,6 +23,11 @@ print.ContrastOutcomes.SingleEnvAnalysis <- function
     trait.name <- data$traits[[i]]$name;
     if(!is.null(data$traits[[i]]$analysis$sea))
     {
+      cat(rep("=", times = 40), sep = "");
+      cat("\n");
+      cat("Trait: ", trait.name, "\n", sep="");
+      cat(rep("=", times = 40), sep = "");
+      cat("\n");
       for(j in 1:length(data$traits[[i]]$analysis$sea$envs))
       {
         env.name <- data$traits[[i]]$analysis$sea$envs[[j]]$name;
@@ -31,7 +36,6 @@ print.ContrastOutcomes.SingleEnvAnalysis <- function
         {
           cat(rep("-", times = 40), sep = "");
           cat("\n");
-          cat("Trait: ", trait.name, "\n", sep="");
           cat("Environment: ", env.name, "\n",sep ="");
           contrast.type = data$traits[[i]]$analysis$sea$envs[[j]]$contrast$type;
           if(contrast.type == "RecurrentParent")
@@ -72,6 +76,7 @@ print.ContrastOutcomes.SingleEnvAnalysis <- function
         cat(rep("-", times = 40), sep = "");
         cat("\n");
       } # end stmt of for(j in 1:1:length(data$traits[[i]]$analysis$sea$envs))
+      cat("\n");
     }# end stmt of if(is.null(data$traits[[i]]$analysis$sea))
   }# end stmt of for(i in 1:data$trait.number)
 }
