@@ -197,7 +197,7 @@ innerFunc.read.geno <- function(
 	result$isRestricted <- FALSE;
 	result$BCn <- BCn;
 	result$Fn <- Fn;
-	result$geno.name <- geno.name;
+	result$geno.name <- geno;
 	result$geno.levels <- levels(data.gen);
 	result$geno.number <- length(data.gen);
 	result$marker.names <- marker.names;
@@ -221,7 +221,7 @@ innerFunc.read.geno <- function(
 	processed.geno.data <- apply(data.without.gen, 2, Recode, recodes.str);
 	processed.geno.data <- as.data.frame(processed.geno.data);
 	processed.data <- cbind(data.gen, processed.geno.data);
-	colnames(processed.data) <- c(geno.name, marker.names);
+	colnames(processed.data) <- c(geno, marker.names);
 	processed.data <- apply(processed.data,2,trimStrings);
 	result$processed$data <- processed.data;
 	
