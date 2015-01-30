@@ -201,7 +201,7 @@ innerFunc.read.geno <- function(
 	result$processed$ht.code <- 1;
 	result$processed$na.code <- NA;
 	# recoding original data
-	library(car);
+	#library(car);
 	recodes.str <- paste("'",dp.code , "'=2; '", rp.code,"'=0; '", ht.code, "'=1;'", na.code, "'=NA;",  sep = "");
 	processed.geno.data <- apply(data.without.gen, 2, Recode, recodes.str);
 	processed.geno.data <- as.data.frame(processed.geno.data);
@@ -240,7 +240,7 @@ innerFunc.read.geno <- function(
 	
 	# setting the result to be class GenotypicData
 	class(result) <- "GenotypicData";
-	detach(package:car, unload = TRUE);
+#	detach(package:car, unload = TRUE);
 	return(result);
 }
 
