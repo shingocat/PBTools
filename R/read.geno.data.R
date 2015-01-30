@@ -9,6 +9,7 @@
 #		na.code: The marker code of missing value;
 #		BCn: The backcross generation;
 #		Fn: The intercross generation;
+#   geno: The column name of genotype name
 #		replace.illegal.code: replace.illegal code to NA if true, else it will stop execution 
 # Author: mqin
 # Date: Oct 7, 2014
@@ -24,6 +25,7 @@ read.geno.data <- function(
 		na.code,
 		BCn = 3,
 		Fn = 2,
+    geno,
 		replace.illegal.code = TRUE,
 #		doRestrict = TRUE
 		sep,
@@ -93,11 +95,18 @@ read.geno.data.data.frame <- function(
 		na.code,
 		BCn = 3,
 		Fn = 2,
+    geno, 
 		replace.illegal.code = TRUE,
 		...
 )
 {
-	result <- innerFunc.read.geno(source, dp.code, rp.code, ht.code, na.code, BCn, Fn);
+  if(missing(geno))
+  {
+    geno.name <- colnames(source)[1];
+  } else {
+    geno.name <- geno;
+  }
+	result <- innerFunc.read.geno(source, dp.code, rp.code, ht.code, na.code, BCn, Fn, geno=geno.name);
 	return(result);
 }
 
@@ -111,6 +120,7 @@ read.geno.data.character <- function(
 		na.code,
 		BCn = 3,
 		Fn = 2,
+    geno,
 		replace.illegal.code = TRUE,
 #		doRestrict = TRUE
 		sep,
@@ -137,8 +147,13 @@ read.geno.data.character <- function(
 	{
 		stop("\tError: There are some problems on in the file!\n");
 	}
-	
-	result <- innerFunc.read.geno(data, dp.code, rp.code, ht.code, na.code, BCn, Fn);
+	if(missing(geno))
+	{
+	  geno.name <- colnames(data)[1];
+	} else {
+	  geno.name <- geno;
+	}
+	result <- innerFunc.read.geno(data, dp.code, rp.code, ht.code, na.code, BCn, Fn, geno = geno.name);
 	return(result);
 }
 
@@ -151,15 +166,15 @@ innerFunc.read.geno <- function(
 		na.code,
 		BCn,
 		Fn,
+    geno,
 		replace.illegal.code = TRUE
 )
 {
 	data <- source;
 	data <- apply(data, 2, trimStrings);
 	# checking whether there are illegal marker code in the file, only accept four type of marker code
-	data.gen <- data[,1];
-	geno.name <- colnames(data)[1];
-	data.without.gen <- data[,-1];
+	data.gen <- data[,geno];
+	data.without.gen <- data[,-which(geno %in% colnames(data))];
 	marker.names <- colnames(data.without.gen);
 	marker.code <- c(dp.code, rp.code, ht.code, na.code);
 	checking.result <- apply(data.without.gen,2, function(x) all(x %in% marker.code));
