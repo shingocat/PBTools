@@ -445,7 +445,7 @@ doSMA.SingleEnvAnalysis <- function(
 	na.code <- NA;
 	if(include.ht)
 	{
-		genotypicData.restricted[,-1][genotypicData[,-1] == ht.code] <- dp.code;
+	  genotypicData.restricted[,-1][genotypicData.restricted[,-1] == ht.code] <- dp.code;
 	}
 	
 	genotypicData.restricted <- apply(genotypicData.restricted, 2, factor);
@@ -778,7 +778,7 @@ doSMA.MultiEnvAnalysis <- function(
 	na.code <- NA;
 	if(include.ht)
 	{
-		genotypicData.restricted[,-1][genotypicData[,-1] == ht.code] <- dp.code;
+		genotypicData.restricted[,-1][genotypicData.restricted[,-1] == ht.code] <- dp.code;
 	}
 	genotypicData.restricted <- apply(genotypicData.restricted, 2, factor);
 	
