@@ -79,7 +79,7 @@ doSMA.PhenotypicData <- function(
 				temp.resp.var <- c(temp.resp.var, resp.var[i]);
 			} else
 			{
-				warings(paste("\tWarnings: It will be omitted the ", resp.var[i], " because of it is not exist!\n", sep = ""));
+				warnings(paste("\tWarnings: It will be omitted the ", resp.var[i], " because of it is not exist!\n", sep = ""));
 			}
 		}
 		if(length(temp.resp.var) == 0)
@@ -110,7 +110,7 @@ doSMA.PhenotypicData <- function(
 		#---suppress warn message---#
 		old.options <- options();
 		options(warn = -1);
-		library("lsmeans");
+		#library("lsmeans");
 		
 		#--- reformat all genotypic data using dp.code instead of ht.code basing on include.ht ----#
 		#--- Because it will recode to default coding sytem, it could be define such code directly!---#
@@ -120,7 +120,7 @@ doSMA.PhenotypicData <- function(
 		na.code <- NA;
 		if(include.ht)
 		{
-			genotypicData.restricted[,-1][genotypicData[,-1] == ht.code] <- dp.code;
+			genotypicData.restricted[,-1][genotypicData.restricted[,-1] == ht.code] <- dp.code;
 		}
 		genotypicData.restricted <- apply(genotypicData.restricted, 2, factor);
 		#--- checking whether is single environment---#
@@ -374,7 +374,7 @@ doSMA.PhenotypicData <- function(
 		} #--- end stmt of for(i in 1:length(resp.var)---#
 		
 		phenotypicData$genotypicData <- genotypicData;
-		detach("package:lsmeans", unload = TRUE);
+		#detach("package:lsmeans", unload = TRUE);
 		options(old.options);
 		class(phenotypicData) <- c("SingleMarkerAnalysis", class(phenotypicData));
 		return(phenotypicData);
@@ -411,7 +411,7 @@ doSMA.SingleEnvAnalysis <- function(
 				temp.resp.var <- c(temp.resp.var, resp.var[i]);
 			} else
 			{
-				warings(paste("\tWarnings: It will be omitted the ", resp.var[i], " because of it is not exist!\n", sep = ""));
+				warnings(paste("\tWarnings: It will be omitted the ", resp.var[i], " because of it is not exist!\n", sep = ""));
 			}
 		}
 		if(length(temp.resp.var) == 0)
@@ -435,7 +435,7 @@ doSMA.SingleEnvAnalysis <- function(
 	#---suppress warn message---#
 	old.options <- options();
 	options(warn = -1);
-	library("lsmeans");
+	#library("lsmeans");
 	
 	#--- reformat all genotypic data using dp.code instead of ht.code basing on include.ht ----#
 	#--- Because it will recode to default coding sytem, it could be define such code directly!---#
@@ -512,7 +512,7 @@ doSMA.SingleEnvAnalysis <- function(
 					data[,env] <- as.factor(data[,env]);
 					data[,trait.name] <- as.numeric(as.character(data[,trait.name]));
 					
-					library("lme4");
+				#	library("lme4");
 					
 					for(k in 1:marker.number)
 					{
@@ -637,7 +637,7 @@ doSMA.SingleEnvAnalysis <- function(
 					phenotypicData$traits[[j]]$analysis$sma$var.table <- var.table;
 					phenotypicData$traits[[j]]$analysis$sma$p.table <- p.table;
 					
-					detach("package:lme4", unload=TRUE);
+				#	detach("package:lme4", unload=TRUE);
 				} else
 				{
 					#--- if not include environment, separated process single marker analysis ---#
@@ -710,7 +710,7 @@ doSMA.SingleEnvAnalysis <- function(
 	} #--- end stmt of for(i in 1:length(resp.var)---#
 	
 	phenotypicData$genotypicData <- genotypicData;
-	detach("package:lsmeans", unload = TRUE);
+	#detach("package:lsmeans", unload = TRUE);
 	options(old.options);
 	class(phenotypicData) <- c("SingleMarkerAnalysis", class(phenotypicData));
 	return(phenotypicData);
@@ -744,7 +744,7 @@ doSMA.MultiEnvAnalysis <- function(
 				temp.resp.var <- c(temp.resp.var, resp.var[i]);
 			} else
 			{
-				warings(paste("\tWarnings: It will be omitted the ", resp.var[i], " because of it is not exist!\n", sep = ""));
+				warnings(paste("\tWarnings: It will be omitted the ", resp.var[i], " because of it is not exist!\n", sep = ""));
 			}
 		}
 		if(length(temp.resp.var) == 0)
@@ -768,7 +768,7 @@ doSMA.MultiEnvAnalysis <- function(
 	#---suppress warn message---#
 	old.options <- options();
 	options(warn = -1);
-	library("lsmeans");
+#	library("lsmeans");
 	
 	#--- reformat all genotypic data using dp.code instead of ht.code basing on include.ht ----#
 	#--- Because it will recode to default coding sytem, it could be define such code directly!---#
@@ -846,7 +846,7 @@ doSMA.MultiEnvAnalysis <- function(
 					data[,trait.name] <- as.numeric(as.character(data[,trait.name]));
 					data[,env] <- as.factor(data[,env]);
 					
-					library("lme4");
+#					library("lme4");
 					
 					for(k in 1:marker.number)
 					{
@@ -971,7 +971,7 @@ doSMA.MultiEnvAnalysis <- function(
 					phenotypicData$traits[[j]]$analysis$sma$var.table <- var.table;
 					phenotypicData$traits[[j]]$analysis$sma$p.table <- p.table;
 					
-					detach("package:lme4", unload=TRUE);
+#					detach("package:lme4", unload=TRUE);
 				} else
 				{
 					#--- if not include environment, separated process single marker analysis ---#
@@ -1050,7 +1050,7 @@ doSMA.MultiEnvAnalysis <- function(
 	} #--- end stmt of for(i in 1:length(resp.var)---#
 	
 	phenotypicData$genotypicData <- genotypicData;
-	detach("package:lsmeans", unload = TRUE);
+#	detach("package:lsmeans", unload = TRUE);
 	options(old.options);
 	class(phenotypicData) <- c("SingleMarkerAnalysis", class(phenotypicData));
 	return(phenotypicData);
