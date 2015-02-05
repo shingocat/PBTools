@@ -124,7 +124,7 @@ doMMA.PhenotypicData <- function(
 		#--- suppress warning message---#
 		old.options <- options();
 		options(warn = 0);
-		library(hdlm);
+		#library(hdlm);
 		
 		#--- reformat all genotypic data using dp.code instead of ht.code basing on include.ht ----#
 		#--- Because it will recode to default coding sytem, it could be define such code directly!---#
@@ -246,7 +246,7 @@ doMMA.PhenotypicData <- function(
 		
 		phenotypicData$genotypicData <- genotypicData;
 		options(old.options);
-		detach("package:hdlm", unload = TRUE);
+		#detach("package:hdlm", unload = TRUE);
 		class(phenotypicData) <- c("MultiMarkerAnalysis", class(phenotypicData));
 		return(phenotypicData);
 		
@@ -313,7 +313,7 @@ doMMA.SingleEnvAnalysis <- function(
 	#--- suppress warning message---#
 	old.options <- options();
 	options(warn = 0);
-	library(hdlm);
+	#library(hdlm);
 	
 	#--- reformat all genotypic data using dp.code instead of ht.code basing on include.ht ----#
 	#--- Because it will recode to default coding sytem, it could be define such code directly!---#
@@ -435,7 +435,7 @@ doMMA.SingleEnvAnalysis <- function(
 	
 	phenotypicData$genotypicData <- genotypicData;
 	options(old.options);
-	detach("package:hdlm", unload = TRUE);
+	#detach("package:hdlm", unload = TRUE);
 	class(phenotypicData) <- c("MultiMarkerAnalysis", class(phenotypicData));
 	return(phenotypicData);
 }
@@ -498,7 +498,7 @@ doMMA.MultiEnvAnalysis <- function(
 	#--- suppress warning message---#
 	old.options <- options();
 	options(warn = 0);
-	library(hdlm);
+	#library(hdlm);
 	
 	#--- reformat all genotypic data using dp.code instead of ht.code basing on include.ht ----#
 	#--- Because it will recode to default coding sytem, it could be define such code directly!---#
@@ -632,7 +632,7 @@ doMMA.MultiEnvAnalysis <- function(
 	
 	phenotypicData$genotypicData <- genotypicData;
 	options(old.options);
-	detach("package:hdlm", unload = TRUE);
+	#detach("package:hdlm", unload = TRUE);
 	class(phenotypicData) <- c("MultiMarkerAnalysis", class(phenotypicData));
 	return(phenotypicData);
 }
@@ -682,52 +682,3 @@ getElasticNetAlpha <- function
 	return(alpha);
 }
 
-print.MultiMarkerAnalysis <- function(
-		data, 
-		p.value = 0.05, 
-		level = 1)
-{
-	if(!inherits(data, "MultiMarkerAnalysis"))
-		stop("\tError: The argument of data should be of class MultiMarkerAnalysis!\n");
-	if(!is.numeric(p.value))
-		stop("\tError: The argument of p.value should be of value between 0 and 1.\n");
-	if(p.value > 1 || p.value < 0)
-		stop("\tError: The argument of p.value should be of value between 0 and 1.\n");
-	if(!level %in% c(1,2,3))
-		stop("\tError: The argument of level should be one of value 1, 2 and 3.\t");
-	cat("Multiple Marker Analysis (p.value < ", p.value, "):\n", sep = "");
-	
-	library(hdlm);
-	for(i in 1:length(data$traits))
-	{
-		if(is.null(data$traits[[i]]$analysis$mma))
-			next;
-		cat("The phenotype is ", data$traits[[i]]$name, sep = "");
-		cat("\n")
-		cat(rep("-", times = 50));
-		cat("\n");
-		for(j in 1:length(data$traits[[i]]$analysis$mma$envs))
-		{
-			cat("The environment is ", data$traits[[i]]$analysis$mma$envs[[j]]$name, sep = "");
-			cat("\n");
-			outcomes <- data$traits[[i]]$analysis$mma$envs[[j]]$outcomes;
-			if(identical(class(outcomes), "try-error"))
-			{
-				cat("It could not fit the model with multiple markers on this trait.\n");
-			}else
-			{
-				out.summary <- summary(outcomes, level = level);
-				coef <- out.summary$coefficients;
-				lower.bound <- out.summary$lower.bound;
-				upper.bound <- out.summary$upper.bound;
-				PValue <- out.summary$p.value;
-				temp <- data.frame(Marker = names(coef), Estimate = coef, CI.Lower = lower.bound, CI.Upper = upper.bound, P.value = PValue);
-				#--- remove intercept in the temp data frame ---#
-				temp <- temp[-1,];
-				print(temp[which(temp$P.value <= p.value),], row.names = FALSE);
-			}
-			cat("\n");
-		}
-	}
-	detach("package:hdlm", unload = TRUE);
-}
