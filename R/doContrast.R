@@ -668,8 +668,8 @@ doContrast.MultiEnvAnalysis <- function(
             data$traits[[i]]$analysis$mea$contrast$contrastAcrossEnv <- NULL;
             next;
           } 
-          envContrast <- envContrast[[1]]
-          envColContrastNames <- colnames(envContrast);
+          envContrast.temp <- envContrast[[1]]
+          envColContrastNames <- colnames(envContrast.temp);
           
           if(!(is.null(envColContrastNames)))
           {
@@ -705,7 +705,7 @@ doContrast.MultiEnvAnalysis <- function(
             next;
           }
           # checking the env coefficients to zero!
-          if(!all(rowSums(envContrast) == 0))
+          if(!all(rowSums(envContrast.temp) == 0))
           {
             message <- "\tError: Sum of each row should be equal to zero on envContrast!\n";
             warning(message);
@@ -719,7 +719,7 @@ doContrast.MultiEnvAnalysis <- function(
           data$traits[[i]]$analysis$mea$contrast$message <- message;
           data$traits[[i]]$analysis$mea$contrast$error <- FALSE;
           data$traits[[i]]$analysis$mea$contrast$contrastOnGeno <- testInteractions(model, custom= trmtContrast);
-          tempEnvContrast = envContrast;
+          tempEnvContrast = envContrast.temp;
           tempEnvContrast = as.data.frame(t(tempEnvContrast));
           trmtContrast$tempEnvContrast <- tempEnvContrast;
           names(trmtContrast) <- c(genoFactorName, envFactorName);
