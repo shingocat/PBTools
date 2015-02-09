@@ -470,7 +470,7 @@ doMEA.PhenotypicData <- function(
       
       # --- if genotype is fixed, output MSE and harmonic mean for AMMI --- #
       # --- compute harmonic mean per environment level --- #
-      envgenorep <- as.data.frame.table(tapply(temp.data[, trait.name], used.data[,c(env, geno)], length));
+      envgenorep <- as.data.frame.table(tapply(used.data[, trait.name], used.data[,c(env, geno)], length));
       envgenorep <- envgenorep[(is.na(envgenorep[,"Freq"]) == FALSE),];
       envgenorep$reciprocal <- 1/envgenorep$Freq;
       envgenorep2 <- as.data.frame.table(tapply(envgenorep[, "reciprocal"], envgenorep[,env], mean));
