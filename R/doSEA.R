@@ -190,6 +190,10 @@ doSEA.PhenotypicData <- function(
       
       #--- call lmer function using myformula1 to get variance components table ---#
       #--- model <- lmer(formula(myformula1), data = temp.data) ---#
+	  #--- modify by QINMAO on 2015-6-8, bug fix that when the trait value sometimes is treated as
+	  #--- factor nor numeric ---#
+	  temp.data[[trait.name]] <- as.numeric(as.character(temp.data[[trait.name]]));
+	  
       model <- try(lmer(formula(myformula1), data = temp.data), silent=TRUE);
       
       #--- if there is some problem ocurred, do next site---#
